@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LlamaParseService {
   final String apiKey;
-  static const String baseUrl = 'https://api.cloud.llamaindex.ai/api/v1/extract';
+  static const String baseUrl = 'https://api.cloud.llamaindex.ai/api/v1/extraction/run';
 
   LlamaParseService({required this.apiKey});
 
