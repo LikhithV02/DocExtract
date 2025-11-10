@@ -82,33 +82,211 @@ class LlamaParseService {
     } else if (documentType == 'invoice') {
       return {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
-          "invoice_number": {"type": "string", "description": "Invoice number"},
-          "invoice_date": {"type": "string", "description": "Invoice date"},
-          "due_date": {"type": "string", "description": "Payment due date"},
-          "vendor_name": {"type": "string", "description": "Vendor/seller name"},
-          "vendor_address": {"type": "string", "description": "Vendor address"},
-          "customer_name": {"type": "string", "description": "Customer/buyer name"},
-          "customer_address": {"type": "string", "description": "Customer address"},
-          "items": {
+          "seller_info": {
+            "description": "Information about the seller or issuer of the invoice.",
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the selling entity.",
+                "type": "string"
+              },
+              "gstin": {
+                "description": "Goods and Services Tax Identification Number of the seller.",
+                "type": "string"
+              },
+              "contact_numbers": {
+                "description": "An array of contact phone numbers for the seller.",
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            },
+            "required": ["name", "gstin", "contact_numbers"]
+          },
+          "customer_info": {
+            "description": "Information about the customer or the entity being billed.",
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "The name of the customer.",
+                "type": "string"
+              },
+              "address": {
+                "description": "The billing address of the customer.",
+                "anyOf": [
+                  {"type": "string"},
+                  {"type": "null"}
+                ]
+              },
+              "contact": {
+                "description": "The contact number of the customer.",
+                "anyOf": [
+                  {"type": "string"},
+                  {"type": "null"}
+                ]
+              },
+              "gstin": {
+                "description": "Goods and Services Tax Identification Number of the customer.",
+                "anyOf": [
+                  {"type": "string"},
+                  {"type": "null"}
+                ]
+              }
+            },
+            "required": ["name", "address", "contact", "gstin"]
+          },
+          "invoice_details": {
+            "description": "General details pertaining to the invoice.",
+            "type": "object",
+            "properties": {
+              "date": {
+                "description": "The date when the invoice was issued. Format: YYYY-MM-DD.",
+                "type": "string"
+              },
+              "bill_no": {
+                "description": "The unique invoice or bill number.",
+                "type": "string"
+              },
+              "gold_price_per_unit": {
+                "description": "The base price of gold per unit (e.g., per gram or 10 grams) at the time of invoice.",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              }
+            },
+            "required": ["date", "bill_no", "gold_price_per_unit"]
+          },
+          "line_items": {
+            "description": "A list of individual items or products included in the invoice.",
             "type": "array",
-            "description": "List of items",
             "items": {
               "type": "object",
               "properties": {
-                "description": {"type": "string"},
-                "quantity": {"type": "number"},
-                "unit_price": {"type": "number"},
-                "total": {"type": "number"}
-              }
+                "description": {
+                  "description": "A brief description of the item.",
+                  "type": "string"
+                },
+                "hsn_code": {
+                  "description": "Harmonized System of Nomenclature (HSN) code for the item.",
+                  "anyOf": [
+                    {"type": "string"},
+                    {"type": "null"}
+                  ]
+                },
+                "weight": {
+                  "description": "The weight of the item, typically in grams or similar units.",
+                  "type": "number"
+                },
+                "wastage_allowance_percentage": {
+                  "description": "The percentage of wastage or allowance applied to the item.",
+                  "anyOf": [
+                    {"type": "number"},
+                    {"type": "null"}
+                  ]
+                },
+                "rate": {
+                  "description": "The unit rate of the item before any additional charges or taxes.",
+                  "type": "number"
+                },
+                "making_charges_percentage": {
+                  "description": "The percentage of making charges applied to the item.",
+                  "anyOf": [
+                    {"type": "number"},
+                    {"type": "null"}
+                  ]
+                },
+                "amount": {
+                  "description": "The total amount for this specific line item, including all charges but before overall discounts/taxes.",
+                  "type": "number"
+                }
+              },
+              "required": ["description", "hsn_code", "weight", "wastage_allowance_percentage", "rate", "making_charges_percentage", "amount"]
             }
           },
-          "subtotal": {"type": "number", "description": "Subtotal amount"},
-          "tax": {"type": "number", "description": "Tax amount"},
-          "total": {"type": "number", "description": "Total amount"},
-          "currency": {"type": "string", "description": "Currency code"}
+          "summary": {
+            "description": "Summary of all financial calculations for the invoice.",
+            "type": "object",
+            "properties": {
+              "sub_total": {
+                "description": "The sum of all line item amounts before discounts and taxes.",
+                "type": "number"
+              },
+              "discount": {
+                "description": "The total discount applied to the invoice.",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              },
+              "taxable_amount": {
+                "description": "The amount on which taxes are calculated after discounts.",
+                "type": "number"
+              },
+              "sgst_percentage": {
+                "description": "State Goods and Services Tax (SGST) percentage.",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              },
+              "sgst_amount": {
+                "description": "The calculated amount of State Goods and Services Tax (SGST).",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              },
+              "cgst_percentage": {
+                "description": "Central Goods and Services Tax (CGST) percentage.",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              },
+              "cgst_amount": {
+                "description": "The calculated amount of Central Goods and Services Tax (CGST).",
+                "anyOf": [
+                  {"type": "number"},
+                  {"type": "null"}
+                ]
+              },
+              "grand_total": {
+                "description": "The final total amount payable for the invoice, including all taxes and after all discounts.",
+                "type": "number"
+              }
+            },
+            "required": ["sub_total", "discount", "taxable_amount", "sgst_percentage", "sgst_amount", "cgst_percentage", "cgst_amount", "grand_total"]
+          },
+          "payment_details": {
+            "description": "Details regarding the payment methods used for the invoice.",
+            "type": "object",
+            "properties": {
+              "cash": {
+                "description": "Amount paid via cash.",
+                "type": "number"
+              },
+              "upi": {
+                "description": "Amount paid via UPI (Unified Payments Interface).",
+                "type": "number"
+              },
+              "card": {
+                "description": "Amount paid via card (credit/debit).",
+                "type": "number"
+              }
+            },
+            "required": ["cash", "upi", "card"]
+          },
+          "total_amount_in_words": {
+            "description": "The grand total amount written out in words.",
+            "anyOf": [
+              {"type": "string"},
+              {"type": "null"}
+            ]
+          }
         },
-        "additionalProperties": false
+        "required": ["seller_info", "customer_info", "invoice_details", "line_items", "summary", "payment_details", "total_amount_in_words"]
       };
     } else {
       return {
