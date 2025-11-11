@@ -3,7 +3,7 @@ description: A Flutter app for extracting information from documents using Llama
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 2.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -24,8 +24,8 @@ dependencies:
   http: ^1.2.0
   dio: ^5.4.0
 
-  # Supabase
-  supabase_flutter: ^2.3.4
+  # WebSocket for real-time sync
+  web_socket_channel: ^2.4.0
 
   # State Management
   provider: ^6.1.1
