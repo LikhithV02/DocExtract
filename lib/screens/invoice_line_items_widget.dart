@@ -29,7 +29,12 @@ class _InvoiceLineItemsWidgetState extends State<InvoiceLineItemsWidget> {
   @override
   void initState() {
     super.initState();
-    final data = widget.document.extractedData;
+    // Handle double-nested extracted_data (backward compatibility)
+    final rawData = widget.document.extractedData;
+    final data = rawData.containsKey('extracted_data') && rawData['extracted_data'] is Map
+        ? rawData['extracted_data'] as Map<String, dynamic>
+        : rawData;
+
     _lineItems = List<Map<String, dynamic>>.from(
       (data['line_items'] as List?)?.map((item) => Map<String, dynamic>.from(item as Map)) ?? []
     );

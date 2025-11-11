@@ -488,8 +488,14 @@ class _InvoiceTableView extends StatelessWidget {
   Map<String, dynamic> _flattenInvoiceData(Map<String, dynamic> data) {
     final flattened = <String, dynamic>{};
 
+    // Handle double-nested extracted_data (backward compatibility)
+    Map<String, dynamic> actualData = data;
+    if (data.containsKey('extracted_data') && data['extracted_data'] is Map) {
+      actualData = data['extracted_data'] as Map<String, dynamic>;
+    }
+
     // Seller Info
-    final sellerInfo = data['seller_info'] as Map?;
+    final sellerInfo = actualData['seller_info'] as Map?;
     flattened['Seller Name'] = _safeGetString(sellerInfo, 'name');
     flattened['Seller GSTIN'] = _safeGetString(sellerInfo, 'gstin');
 
@@ -503,37 +509,39 @@ class _InvoiceTableView extends StatelessWidget {
     }
 
     // Customer Info
-    final customerInfo = data['customer_info'] as Map?;
+    final customerInfo = actualData['customer_info'] as Map?;
     flattened['Customer Name'] = _safeGetString(customerInfo, 'name');
     flattened['Customer Address'] = _safeGetString(customerInfo, 'address');
     flattened['Customer Contact'] = _safeGetString(customerInfo, 'contact');
     flattened['Customer GSTIN'] = _safeGetString(customerInfo, 'gstin');
 
     // Invoice Details
-    final invoiceDetails = data['invoice_details'] as Map?;
+    final invoiceDetails = actualData['invoice_details'] as Map?;
     flattened['Invoice Date'] = _safeGetString(invoiceDetails, 'date');
     flattened['Bill Number'] = _safeGetString(invoiceDetails, 'bill_no');
     flattened['Gold Price Per Unit'] = _safeGetNumber(invoiceDetails, 'gold_price_per_unit');
 
     // Summary
-    final summary = data['summary'] as Map?;
+    final summary = actualData['summary'] as Map?;
     flattened['Grand Total'] = _safeGetNumber(summary, 'grand_total');
 
     return flattened;
   }
 
   String _formatDate(DateTime date) {
+    // Convert to local timezone if it's UTC
+    final localDate = date.isUtc ? date.toLocal() : date;
     final now = DateTime.now();
-    final difference = now.difference(date);
+    final difference = now.difference(localDate);
 
     if (difference.inDays == 0) {
-      return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      return 'Today ${localDate.hour}:${localDate.minute.toString().padLeft(2, '0')}';
     } else if (difference.inDays == 1) {
       return 'Yesterday';
     } else if (difference.inDays < 7) {
       return '${difference.inDays}d ago';
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return '${localDate.day}/${localDate.month}/${localDate.year}';
     }
   }
 }

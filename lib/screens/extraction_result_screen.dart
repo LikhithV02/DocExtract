@@ -412,8 +412,14 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
   Map<String, dynamic> _flattenInvoiceData(Map<String, dynamic> data) {
     final flattened = <String, dynamic>{};
 
+    // Handle double-nested extracted_data (backward compatibility)
+    Map<String, dynamic> actualData = data;
+    if (data.containsKey('extracted_data') && data['extracted_data'] is Map) {
+      actualData = data['extracted_data'] as Map<String, dynamic>;
+    }
+
     // Seller Info
-    final sellerInfo = data['seller_info'] as Map?;
+    final sellerInfo = actualData['seller_info'] as Map?;
     flattened['Seller Name'] = _safeGetString(sellerInfo, 'name');
     flattened['Seller GSTIN'] = _safeGetString(sellerInfo, 'gstin');
 
@@ -427,21 +433,21 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     }
 
     // Customer Info
-    final customerInfo = data['customer_info'] as Map?;
+    final customerInfo = actualData['customer_info'] as Map?;
     flattened['Customer Name'] = _safeGetString(customerInfo, 'name');
     flattened['Customer Address'] = _safeGetString(customerInfo, 'address');
     flattened['Customer Contact'] = _safeGetString(customerInfo, 'contact');
     flattened['Customer GSTIN'] = _safeGetString(customerInfo, 'gstin');
 
     // Invoice Details
-    final invoiceDetails = data['invoice_details'] as Map?;
+    final invoiceDetails = actualData['invoice_details'] as Map?;
     flattened['Invoice Date'] = _safeGetString(invoiceDetails, 'date');
     flattened['Bill Number'] = _safeGetString(invoiceDetails, 'bill_no');
     flattened['Gold Price Per Unit'] = _safeGetNumber(invoiceDetails, 'gold_price_per_unit');
 
     // Line Items - summarize or show first item
-    if (data['line_items'] != null && data['line_items'] is List) {
-      final lineItems = data['line_items'] as List;
+    if (actualData['line_items'] != null && actualData['line_items'] is List) {
+      final lineItems = actualData['line_items'] as List;
       if (lineItems.isNotEmpty) {
         final firstItem = lineItems.first as Map?;
         flattened['Item Description'] = _safeGetString(firstItem, 'description');
@@ -459,7 +465,7 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     }
 
     // Summary
-    final summary = data['summary'] as Map?;
+    final summary = actualData['summary'] as Map?;
     flattened['Sub Total'] = _safeGetNumber(summary, 'sub_total');
     flattened['Discount'] = _safeGetNumber(summary, 'discount');
     flattened['Taxable Amount'] = _safeGetNumber(summary, 'taxable_amount');
@@ -470,13 +476,13 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     flattened['Grand Total'] = _safeGetNumber(summary, 'grand_total');
 
     // Payment Details
-    final paymentDetails = data['payment_details'] as Map?;
+    final paymentDetails = actualData['payment_details'] as Map?;
     flattened['Payment Cash'] = _safeGetNumber(paymentDetails, 'cash');
     flattened['Payment UPI'] = _safeGetNumber(paymentDetails, 'upi');
     flattened['Payment Card'] = _safeGetNumber(paymentDetails, 'card');
 
     // Total Amount in Words
-    flattened['Amount in Words'] = _safeGetString(data, 'total_amount_in_words');
+    flattened['Amount in Words'] = _safeGetString(actualData, 'total_amount_in_words');
 
     return flattened;
   }
