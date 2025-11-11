@@ -166,24 +166,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              _ActionButton(
-                icon: Icons.camera_alt,
-                label: 'Take Photo',
-                onPressed: _pickImageFromCamera,
-              ),
-              const SizedBox(height: 16),
-              if (!kIsWeb) ...[
-                _ActionButton(
-                  icon: Icons.photo_library,
-                  label: 'Choose from Gallery',
-                  onPressed: _pickImageFromGallery,
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: kIsWeb ? 400 : double.infinity,
                 ),
-                const SizedBox(height: 16),
-              ],
-              _ActionButton(
-                icon: Icons.upload_file,
-                label: 'Upload PDF or Image',
-                onPressed: _pickFile,
+                child: Column(
+                  children: [
+                    _ActionButton(
+                      icon: Icons.camera_alt,
+                      label: 'Take Photo',
+                      onPressed: _pickImageFromCamera,
+                    ),
+                    const SizedBox(height: 16),
+                    if (!kIsWeb) ...[
+                      _ActionButton(
+                        icon: Icons.photo_library,
+                        label: 'Choose from Gallery',
+                        onPressed: _pickImageFromGallery,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _ActionButton(
+                      icon: Icons.upload_file,
+                      label: 'Upload PDF or Image',
+                      onPressed: _pickFile,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 48),
               Consumer<DocumentProvider>(
