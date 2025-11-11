@@ -22,11 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Load documents and initialize real-time sync
+    // Load documents (WebSocket sync is initialized automatically)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<DocumentProvider>();
       provider.loadDocuments();
-      provider.initRealtimeSync();
     });
   }
 

@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/home_screen.dart';
-import 'services/supabase_service.dart';
 import 'providers/document_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Supabase
-  // Replace with your Supabase URL and Anon Key
-  await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL', defaultValue: 'YOUR_SUPABASE_URL'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'YOUR_SUPABASE_ANON_KEY'),
-  );
 
   runApp(const MyApp());
 }

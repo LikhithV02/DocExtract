@@ -4,14 +4,14 @@ class ApiConfig {
   /// Can be overridden using --dart-define=API_BASE_URL=https://your-api.com
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'http://192.168.0.196:8000',
   );
 
   /// WebSocket URL for real-time updates
   /// Can be overridden using --dart-define=WS_URL=wss://your-api.com/ws/documents
   static const String wsUrl = String.fromEnvironment(
     'WS_URL',
-    defaultValue: 'ws://localhost:8000/ws/documents',
+    defaultValue: 'ws://192.168.0.196:8000/ws/documents',
   );
 
   /// API version prefix

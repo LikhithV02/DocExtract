@@ -40,7 +40,9 @@ class _EditExtractionScreenState extends State<EditExtractionScreen> {
 
   @override
   void dispose() {
-    _controllers.values.forEach((controller) => controller.dispose());
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -51,14 +53,16 @@ class _EditExtractionScreenState extends State<EditExtractionScreen> {
 
     try {
       // Update edited data from controllers
-      _controllers.forEach((key, controller) {
+      for (final entry in _controllers.entries) {
+        final key = entry.key;
+        final controller = entry.value;
         final originalValue = _editedData[key];
         if (originalValue is num) {
           _editedData[key] = num.tryParse(controller.text) ?? controller.text;
         } else {
           _editedData[key] = controller.text;
         }
-      });
+      }
 
       // Create updated document
       final updatedDocument = ExtractedDocument(

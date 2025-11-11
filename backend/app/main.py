@@ -84,7 +84,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "database": "connected" if db_service.db else "disconnected",
+        "database": "connected" if db_service.db is not None else "disconnected",
     }
 
 

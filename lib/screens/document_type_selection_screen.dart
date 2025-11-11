@@ -1,12 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../services/llama_parse_service.dart';
+import '../services/api_service.dart';
 import '../models/extracted_document.dart';
-import '../providers/document_provider.dart';
 import 'edit_extraction_screen.dart';
 
 class DocumentTypeSelectionScreen extends StatefulWidget {
@@ -44,18 +41,21 @@ class _DocumentTypeSelectionScreenState
     });
 
     try {
-      // Get LlamaParse API key from environment or use placeholder
-      const apiKey = String.fromEnvironment(
-        'LLAMA_CLOUD_API_KEY',
-        defaultValue: 'YOUR_LLAMA_CLOUD_API_KEY',
-      );
+      final apiService = ApiService();
 
-      final llamaParseService = LlamaParseService(apiKey: apiKey);
+      // Get file bytes
+      Uint8List bytes;
+      if (widget.fileBytes != null) {
+        bytes = widget.fileBytes!;
+      } else if (widget.file != null) {
+        bytes = await widget.file!.readAsBytes();
+      } else {
+        throw Exception('No file provided');
+      }
 
-      // Extract data
-      final extractedData = await llamaParseService.extractDocument(
-        file: widget.file,
-        fileBytes: widget.fileBytes,
+      // Extract data using backend API
+      final extractedData = await apiService.extractDocument(
+        fileBytes: bytes,
         fileName: widget.fileName,
         documentType: _selectedType!,
       );
