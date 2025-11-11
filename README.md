@@ -229,15 +229,47 @@ Once you save a document on one device (e.g., mobile), it will **instantly appea
 - Nationality
 - Document Type
 
-### Invoice
-- Invoice Number
+### Invoice (Detailed Indian GST Invoice)
+**Seller Information:**
+- Seller Name
+- GSTIN (Goods and Services Tax Identification Number)
+- Contact Numbers
+
+**Customer Information:**
+- Customer Name
+- Billing Address
+- Contact Number
+- GSTIN
+
+**Invoice Details:**
 - Invoice Date
-- Due Date
-- Vendor Name & Address
-- Customer Name & Address
-- Line Items (description, quantity, price)
-- Subtotal, Tax, Total
-- Currency
+- Bill Number
+- Gold Price per Unit (for jewelry invoices)
+
+**Line Items:** (For each item)
+- Description
+- HSN Code (Harmonized System of Nomenclature)
+- Weight
+- Wastage Allowance Percentage
+- Rate
+- Making Charges Percentage
+- Amount
+
+**Financial Summary:**
+- Subtotal
+- Discount
+- Taxable Amount
+- SGST (State GST) Percentage & Amount
+- CGST (Central GST) Percentage & Amount
+- Grand Total
+
+**Payment Details:**
+- Cash Amount
+- UPI Amount
+- Card Amount
+
+**Additional:**
+- Total Amount in Words
 
 ## Troubleshooting
 
