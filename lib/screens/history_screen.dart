@@ -108,6 +108,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   );
                 }
 
+                // Show table view for invoices
+                if (_filterType == 'invoice' ||
+                    (_filterType == 'all' && documents.any((d) => d.documentType == 'invoice'))) {
+                  final invoices = documents.where((d) => d.documentType == 'invoice').toList();
+                  if (invoices.isNotEmpty) {
+                    return _InvoiceTableView(
+                      invoices: invoices,
+                      onDelete: (document) => _confirmDelete(context, document),
+                      onView: (document) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ExtractionResultScreen(document: document),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                }
+
+                // Show card view for government IDs or mixed view
                 return RefreshIndicator(
                   onRefresh: () => provider.loadDocuments(),
                   child: ListView.builder(
@@ -179,23 +201,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class _DocumentCard extends StatefulWidget {
-  final ExtractedDocument document;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
+class _InvoiceTableView extends StatelessWidget {
+  final List<ExtractedDocument> invoices;
+  final Function(ExtractedDocument) onDelete;
+  final Function(ExtractedDocument) onView;
 
-  const _DocumentCard({
-    required this.document,
-    required this.onTap,
+  const _InvoiceTableView({
+    required this.invoices,
     required this.onDelete,
+    required this.onView,
   });
-
-  @override
-  State<_DocumentCard> createState() => _DocumentCardState();
-}
-
-class _DocumentCardState extends State<_DocumentCard> {
-  bool _isExpanded = false;
 
   void _copyToClipboard(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -209,216 +224,184 @@ class _DocumentCardState extends State<_DocumentCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isGovernmentId = widget.document.documentType == 'government_id';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () {
-              setState(() {
-                _isExpanded = !_isExpanded;
-              });
-            },
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isGovernmentId
-                          ? Colors.blue.shade50
-                          : Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      isGovernmentId ? Icons.badge : Icons.receipt_long,
-                      color: isGovernmentId ? Colors.blue : Colors.green,
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.document.fileName,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isGovernmentId ? 'Government ID' : 'Invoice',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatDate(widget.document.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[500],
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    _isExpanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: widget.onDelete,
-                    color: Colors.red,
-                    tooltip: 'Delete',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Extracted Data',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Row(
-                        children: [
-                          TextButton.icon(
-                            icon: const Icon(Icons.copy_all, size: 16),
-                            label: const Text('Copy All'),
-                            onPressed: () {
-                              final jsonString = const JsonEncoder.withIndent('  ')
-                                  .convert(widget.document.extractedData);
-                              _copyToClipboard(context, jsonString);
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton.icon(
-                            icon: const Icon(Icons.open_in_new, size: 16),
-                            label: const Text('View Details'),
-                            onPressed: widget.onTap,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (widget.document.extractedData.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'No data extracted',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                        ),
-                      ),
-                    )
-                  else
-                    _buildDataTable(),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDataTable() {
-    // Flatten invoice data for better display
-    final displayData = widget.document.documentType == 'invoice'
-        ? _flattenInvoiceData(widget.document.extractedData)
-        : widget.document.extractedData;
-
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: MaterialStateProperty.all(
-          Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        ),
-        dataRowMinHeight: 40,
-        dataRowMaxHeight: 80,
-        columns: [
-          DataColumn(
-            label: Text(
-              'Field',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Value',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ),
-          DataColumn(
-            label: Text(
-              'Actions',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ),
-        ],
-        rows: displayData.entries.map((entry) {
-          return DataRow(
-            cells: [
-              DataCell(
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 150),
-                  child: Text(
-                    _formatLabel(entry.key),
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Invoice History (${invoices.length})',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-              DataCell(
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 250),
-                  child: SelectableText(
-                    _formatValue(entry.value),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              ),
-              DataCell(
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 18),
-                  onPressed: () {
-                    _copyToClipboard(context, _formatValue(entry.value));
-                  },
-                  tooltip: 'Copy',
-                ),
+              IconButton(
+                icon: const Icon(Icons.copy_all),
+                onPressed: () {
+                  final allData = invoices.map((inv) => inv.extractedData).toList();
+                  final jsonString = const JsonEncoder.withIndent('  ').convert(allData);
+                  _copyToClipboard(context, jsonString);
+                },
+                tooltip: 'Copy all invoice data',
               ),
             ],
-          );
-        }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 2,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: MaterialStateProperty.all(
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                ),
+                dataRowMinHeight: 50,
+                dataRowMaxHeight: 80,
+                columnSpacing: 24,
+                columns: [
+                  DataColumn(
+                    label: Text(
+                      'Time',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Seller Name',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Seller GSTIN',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Seller Contact',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Customer Name',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Invoice Date',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Bill Number',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    numeric: true,
+                    label: Text(
+                      'Grand Total',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Actions',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                ],
+                rows: invoices.map((invoice) {
+                  final flatData = _flattenInvoiceData(invoice.extractedData);
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Text(
+                          _formatDate(invoice.createdAt),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      DataCell(
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 150),
+                          child: Text(
+                            flatData['Seller Name']?.toString() ?? 'N/A',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(flatData['Seller GSTIN']?.toString() ?? 'N/A'),
+                      ),
+                      DataCell(
+                        Text(flatData['Seller Contact']?.toString() ?? 'N/A'),
+                      ),
+                      DataCell(
+                        Text(flatData['Customer Name']?.toString() ?? 'N/A'),
+                      ),
+                      DataCell(
+                        Text(flatData['Invoice Date']?.toString() ?? 'N/A'),
+                      ),
+                      DataCell(
+                        Text(flatData['Bill Number']?.toString() ?? 'N/A'),
+                      ),
+                      DataCell(
+                        Text(
+                          flatData['Grand Total']?.toString() ?? 'N/A',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.visibility, size: 18),
+                              onPressed: () => onView(invoice),
+                              tooltip: 'View Details',
+                              color: Colors.blue,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 18),
+                              onPressed: () => onDelete(invoice),
+                              tooltip: 'Delete',
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -460,74 +443,108 @@ class _DocumentCardState extends State<_DocumentCard> {
       flattened['Gold Price Per Unit'] = invoiceDetails['gold_price_per_unit'];
     }
 
-    // Line Items - summarize or show first item
-    if (data['line_items'] != null && data['line_items'] is List) {
-      final lineItems = data['line_items'] as List;
-      if (lineItems.isNotEmpty) {
-        final firstItem = lineItems.first as Map;
-        flattened['Item Description'] = firstItem['description'];
-        flattened['HSN Code'] = firstItem['hsn_code'];
-        flattened['Weight'] = firstItem['weight'];
-        flattened['Wastage %'] = firstItem['wastage_allowance_percentage'];
-        flattened['Rate'] = firstItem['rate'];
-        flattened['Making Charges %'] = firstItem['making_charges_percentage'];
-        flattened['Item Amount'] = firstItem['amount'];
-      }
-      // Add count of total items if more than one
-      if (lineItems.length > 1) {
-        flattened['Total Line Items'] = lineItems.length;
-      }
-    }
-
     // Summary
     if (data['summary'] != null && data['summary'] is Map) {
       final summary = data['summary'] as Map;
-      flattened['Sub Total'] = summary['sub_total'];
-      flattened['Discount'] = summary['discount'];
-      flattened['Taxable Amount'] = summary['taxable_amount'];
-      flattened['SGST %'] = summary['sgst_percentage'];
-      flattened['SGST Amount'] = summary['sgst_amount'];
-      flattened['CGST %'] = summary['cgst_percentage'];
-      flattened['CGST Amount'] = summary['cgst_amount'];
       flattened['Grand Total'] = summary['grand_total'];
-    }
-
-    // Payment Details
-    if (data['payment_details'] != null && data['payment_details'] is Map) {
-      final paymentDetails = data['payment_details'] as Map;
-      flattened['Payment Cash'] = paymentDetails['cash'];
-      flattened['Payment UPI'] = paymentDetails['upi'];
-      flattened['Payment Card'] = paymentDetails['card'];
-    }
-
-    // Total Amount in Words
-    if (data['total_amount_in_words'] != null) {
-      flattened['Amount in Words'] = data['total_amount_in_words'];
     }
 
     return flattened;
   }
 
-  String _formatLabel(String key) {
-    // If key already has capital letters (flattened keys), return as is
-    if (key.contains(RegExp(r'[A-Z]'))) {
-      return key;
-    }
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
 
-    return key
-        .split('_')
-        .map((word) => word.isEmpty
-            ? ''
-            : word[0].toUpperCase() + word.substring(1))
-        .join(' ');
+    if (difference.inDays == 0) {
+      return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
+}
 
-  String _formatValue(dynamic value) {
-    if (value == null) return 'N/A';
-    if (value is Map || value is List) {
-      return const JsonEncoder.withIndent('  ').convert(value);
-    }
-    return value.toString();
+class _DocumentCard extends StatelessWidget {
+  final ExtractedDocument document;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _DocumentCard({
+    required this.document,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isGovernmentId = document.documentType == 'government_id';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isGovernmentId
+                      ? Colors.blue.shade50
+                      : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isGovernmentId ? Icons.badge : Icons.receipt_long,
+                  color: isGovernmentId ? Colors.blue : Colors.green,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      document.fileName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isGovernmentId ? 'Government ID' : 'Invoice',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatDate(document.createdAt),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: onDelete,
+                color: Colors.red,
+                tooltip: 'Delete',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String _formatDate(DateTime date) {
