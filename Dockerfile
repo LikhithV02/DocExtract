@@ -1,8 +1,11 @@
 # Multi-stage build for Flutter Web App
 # Stage 1: Build Flutter Web
-FROM cirrusci/flutter:3.19.0 AS build-stage
+FROM ghcr.io/cirruslabs/flutter:stable AS build-stage
 
 WORKDIR /app
+
+# Enable Flutter web support
+RUN flutter config --enable-web
 
 # Copy pubspec files and get dependencies
 COPY pubspec.yaml pubspec.lock ./
