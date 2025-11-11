@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../providers/document_provider.dart';
 import '../models/extracted_document.dart';
 import 'extraction_result_screen.dart';
+import 'invoice_line_items_widget.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,6 +16,58 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _filterType = 'all';
+  final Set<String> _expandedRows = {};  // Track which rows are expanded
+  final Map<String, List<Map<String, dynamic>>> _editedLineItems = {};  // Track edited line items
+  final Map<String, bool> _editModes = {};  // Track which documents are in edit mode
+  final Map<String, Map<String, TextEditingController>> _controllers = {};  // Text controllers for editing
+
+  @override
+  void dispose() {
+    // Clean up all text controllers
+    for (var docControllers in _controllers.values) {
+      for (var controller in docControllers.values) {
+        controller.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  void _showLineItemsDialog(BuildContext context, ExtractedDocument document) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                title: Text('Line Items - ${document.fileName}'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: InvoiceLineItemsWidget(
+                    document: document,
+                    onSaved: () {
+                      // Reload documents after saving
+                      Provider.of<DocumentProvider>(context, listen: false).loadDocuments();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +178,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                         );
                       },
+                      onExpand: _showLineItemsDialog,
                     );
                   }
                 }
@@ -205,11 +259,13 @@ class _InvoiceTableView extends StatelessWidget {
   final List<ExtractedDocument> invoices;
   final Function(ExtractedDocument) onDelete;
   final Function(ExtractedDocument) onView;
+  final Function(BuildContext, ExtractedDocument) onExpand;
 
   const _InvoiceTableView({
     required this.invoices,
     required this.onDelete,
     required this.onView,
+    required this.onExpand,
   });
 
   void _copyToClipboard(BuildContext context, String text) {
@@ -381,6 +437,12 @@ class _InvoiceTableView extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
+                              icon: const Icon(Icons.table_rows, size: 18),
+                              onPressed: () => onExpand(context, invoice),
+                              tooltip: 'View/Edit Line Items',
+                              color: Colors.green,
+                            ),
+                            IconButton(
                               icon: const Icon(Icons.visibility, size: 18),
                               onPressed: () => onView(invoice),
                               tooltip: 'View Details',
@@ -406,48 +468,56 @@ class _InvoiceTableView extends StatelessWidget {
     );
   }
 
+  /// Safely get string value from map with default
+  String _safeGetString(Map? data, String key, {String defaultValue = 'N/A'}) {
+    if (data == null) return defaultValue;
+    final value = data[key];
+    if (value == null) return defaultValue;
+    return value.toString();
+  }
+
+  /// Safely get numeric value from map with default
+  dynamic _safeGetNumber(Map? data, String key, {String defaultValue = 'N/A'}) {
+    if (data == null) return defaultValue;
+    final value = data[key];
+    if (value == null) return defaultValue;
+    return value;
+  }
+
   /// Flatten invoice data structure for better table display
   Map<String, dynamic> _flattenInvoiceData(Map<String, dynamic> data) {
     final flattened = <String, dynamic>{};
 
     // Seller Info
-    if (data['seller_info'] != null && data['seller_info'] is Map) {
-      final sellerInfo = data['seller_info'] as Map;
-      flattened['Seller Name'] = sellerInfo['name'];
-      flattened['Seller GSTIN'] = sellerInfo['gstin'];
+    final sellerInfo = data['seller_info'] as Map?;
+    flattened['Seller Name'] = _safeGetString(sellerInfo, 'name');
+    flattened['Seller GSTIN'] = _safeGetString(sellerInfo, 'gstin');
 
-      // Handle contact numbers array - take first value
-      if (sellerInfo['contact_numbers'] != null &&
-          sellerInfo['contact_numbers'] is List &&
-          (sellerInfo['contact_numbers'] as List).isNotEmpty) {
-        flattened['Seller Contact'] = (sellerInfo['contact_numbers'] as List).first;
-      } else {
-        flattened['Seller Contact'] = sellerInfo['contact_numbers'];
-      }
+    // Handle contact numbers array - take first value
+    if (sellerInfo?['contact_numbers'] != null &&
+        sellerInfo!['contact_numbers'] is List &&
+        (sellerInfo['contact_numbers'] as List).isNotEmpty) {
+      flattened['Seller Contact'] = (sellerInfo['contact_numbers'] as List).first.toString();
+    } else {
+      flattened['Seller Contact'] = 'N/A';
     }
 
     // Customer Info
-    if (data['customer_info'] != null && data['customer_info'] is Map) {
-      final customerInfo = data['customer_info'] as Map;
-      flattened['Customer Name'] = customerInfo['name'];
-      flattened['Customer Address'] = customerInfo['address'];
-      flattened['Customer Contact'] = customerInfo['contact'];
-      flattened['Customer GSTIN'] = customerInfo['gstin'];
-    }
+    final customerInfo = data['customer_info'] as Map?;
+    flattened['Customer Name'] = _safeGetString(customerInfo, 'name');
+    flattened['Customer Address'] = _safeGetString(customerInfo, 'address');
+    flattened['Customer Contact'] = _safeGetString(customerInfo, 'contact');
+    flattened['Customer GSTIN'] = _safeGetString(customerInfo, 'gstin');
 
     // Invoice Details
-    if (data['invoice_details'] != null && data['invoice_details'] is Map) {
-      final invoiceDetails = data['invoice_details'] as Map;
-      flattened['Invoice Date'] = invoiceDetails['date'];
-      flattened['Bill Number'] = invoiceDetails['bill_no'];
-      flattened['Gold Price Per Unit'] = invoiceDetails['gold_price_per_unit'];
-    }
+    final invoiceDetails = data['invoice_details'] as Map?;
+    flattened['Invoice Date'] = _safeGetString(invoiceDetails, 'date');
+    flattened['Bill Number'] = _safeGetString(invoiceDetails, 'bill_no');
+    flattened['Gold Price Per Unit'] = _safeGetNumber(invoiceDetails, 'gold_price_per_unit');
 
     // Summary
-    if (data['summary'] != null && data['summary'] is Map) {
-      final summary = data['summary'] as Map;
-      flattened['Grand Total'] = summary['grand_total'];
-    }
+    final summary = data['summary'] as Map?;
+    flattened['Grand Total'] = _safeGetNumber(summary, 'grand_total');
 
     return flattened;
   }

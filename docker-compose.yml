@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MongoDB Database (Optional - comment out if using MongoDB Cloud)
+  # Uncomment this service to use local MongoDB
+  # mongodb:
+  #   image: mongo:7.0
+  #   container_name: docextract_mongodb
+  #   restart: always
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: admin
+  #     MONGO_INITDB_ROOT_PASSWORD: password123
+  #     MONGO_INITDB_DATABASE: docextract
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #     - mongodb_config:/data/configdb
+  #   healthcheck:
+  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+  #   networks:
+  #     - docextract_network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: docextract_backend
+    restart: always
+    environment:
+      # Use MongoDB Cloud connection string from .env
+      # Format: mongodb+srv://username:password@cluster.mongodb.net/database
+      MONGODB_URL: ${MONGODB_URL:-mongodb://admin:password123@mongodb:27017}
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-docextract}
+      LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-llx-your-api-key}
+      HOST: 0.0.0.0
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    # Remove mongodb dependency if using MongoDB Cloud
+    # depends_on:
+    #   mongodb:
+    #     condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - docextract_network
+
+  # Flutter Web Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: http://localhost:8000
+        WS_URL: ws://localhost:8000/ws/documents
+    container_name: docextract_frontend
+    restart: always
+    environment:
+      PORT: 80
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - docextract_network
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  docextract_network:
+    driver: bridge

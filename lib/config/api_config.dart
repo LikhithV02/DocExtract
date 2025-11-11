@@ -2,26 +2,39 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// API Configuration for DocExtract Backend
 class ApiConfig {
+  // Private getters for compile-time constants
+  static const String _apiBaseUrlEnv = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String _wsUrlEnv = String.fromEnvironment(
+    'WS_URL',
+    defaultValue: '',
+  );
+
   /// Base URL for the API
   /// Can be overridden using --dart-define=API_BASE_URL=https://your-api.com
   /// Uses localhost for web, local network IP for mobile
-  static String get baseUrl => const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: '',
-      ).isEmpty
-          ? (kIsWeb ? 'http://localhost:8000' : 'http://192.168.0.196:8000')
-          : const String.fromEnvironment('API_BASE_URL');
+  static String get baseUrl {
+    if (_apiBaseUrlEnv.isNotEmpty) {
+      return _apiBaseUrlEnv;
+    }
+    // Runtime platform check
+    return kIsWeb ? 'http://localhost:8000' : 'http://192.168.0.196:8000';
+  }
 
   /// WebSocket URL for real-time updates
   /// Can be overridden using --dart-define=WS_URL=wss://your-api.com/ws/documents
-  static String get wsUrl => const String.fromEnvironment(
-        'WS_URL',
-        defaultValue: '',
-      ).isEmpty
-          ? (kIsWeb
-              ? 'ws://localhost:8000/ws/documents'
-              : 'ws://192.168.0.196:8000/ws/documents')
-          : const String.fromEnvironment('WS_URL');
+  static String get wsUrl {
+    if (_wsUrlEnv.isNotEmpty) {
+      return _wsUrlEnv;
+    }
+    // Runtime platform check
+    return kIsWeb
+        ? 'ws://localhost:8000/ws/documents'
+        : 'ws://192.168.0.196:8000/ws/documents';
+  }
 
   /// API version prefix
   static const String apiVersion = '/api/v1';

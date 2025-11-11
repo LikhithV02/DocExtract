@@ -213,6 +213,75 @@ async def delete_document(document_id: str):
         )
 
 
+@router.put("/{document_id}", response_model=DocumentResponse)
+async def update_document(document_id: str, document: DocumentCreate):
+    """
+    Update an existing document
+
+    Args:
+        document_id: Document ID
+        document: DocumentCreate with updated data
+
+    Returns:
+        DocumentResponse with updated document
+
+    Raises:
+        HTTPException: If document not found or update fails
+    """
+    try:
+        # Check if document exists
+        existing = await db_service.get_document(document_id)
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document not found: {document_id}",
+            )
+
+        # Create updated document with existing created_at
+        from datetime import datetime
+        updated_doc = ExtractedDocument(
+            id=document_id,
+            document_type=document.document_type,
+            file_name=document.file_name,
+            extracted_data=document.extracted_data,
+            created_at=datetime.fromisoformat(existing['created_at']),
+        )
+
+        # Update in database
+        success = await db_service.update_document(updated_doc)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document not found: {document_id}",
+            )
+
+        # Broadcast UPDATE event to WebSocket clients
+        await ws_manager.broadcast(
+            event_type="UPDATE",
+            data=updated_doc.model_dump(mode="json"),
+        )
+
+        logger.info(f"Updated document: {document_id}")
+
+        return DocumentResponse(
+            id=updated_doc.id,
+            document_type=updated_doc.document_type,
+            file_name=updated_doc.file_name,
+            extracted_data=updated_doc.extracted_data,
+            created_at=updated_doc.created_at.isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating document: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update document: {str(e)}",
+        )
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """

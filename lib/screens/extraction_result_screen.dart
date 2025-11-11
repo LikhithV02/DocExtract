@@ -392,55 +392,65 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     );
   }
 
+  /// Safely get string value from map with default
+  String _safeGetString(Map? data, String key, {String defaultValue = 'N/A'}) {
+    if (data == null) return defaultValue;
+    final value = data[key];
+    if (value == null) return defaultValue;
+    return value.toString();
+  }
+
+  /// Safely get numeric value from map with default
+  dynamic _safeGetNumber(Map? data, String key, {String defaultValue = 'N/A'}) {
+    if (data == null) return defaultValue;
+    final value = data[key];
+    if (value == null) return defaultValue;
+    return value;
+  }
+
   /// Flatten invoice data structure for better table display
   Map<String, dynamic> _flattenInvoiceData(Map<String, dynamic> data) {
     final flattened = <String, dynamic>{};
 
     // Seller Info
-    if (data['seller_info'] != null && data['seller_info'] is Map) {
-      final sellerInfo = data['seller_info'] as Map;
-      flattened['Seller Name'] = sellerInfo['name'];
-      flattened['Seller GSTIN'] = sellerInfo['gstin'];
+    final sellerInfo = data['seller_info'] as Map?;
+    flattened['Seller Name'] = _safeGetString(sellerInfo, 'name');
+    flattened['Seller GSTIN'] = _safeGetString(sellerInfo, 'gstin');
 
-      // Handle contact numbers array - take first value
-      if (sellerInfo['contact_numbers'] != null &&
-          sellerInfo['contact_numbers'] is List &&
-          (sellerInfo['contact_numbers'] as List).isNotEmpty) {
-        flattened['Seller Contact'] = (sellerInfo['contact_numbers'] as List).first;
-      } else {
-        flattened['Seller Contact'] = sellerInfo['contact_numbers'];
-      }
+    // Handle contact numbers array - take first value
+    if (sellerInfo?['contact_numbers'] != null &&
+        sellerInfo!['contact_numbers'] is List &&
+        (sellerInfo['contact_numbers'] as List).isNotEmpty) {
+      flattened['Seller Contact'] = (sellerInfo['contact_numbers'] as List).first.toString();
+    } else {
+      flattened['Seller Contact'] = 'N/A';
     }
 
     // Customer Info
-    if (data['customer_info'] != null && data['customer_info'] is Map) {
-      final customerInfo = data['customer_info'] as Map;
-      flattened['Customer Name'] = customerInfo['name'];
-      flattened['Customer Address'] = customerInfo['address'];
-      flattened['Customer Contact'] = customerInfo['contact'];
-      flattened['Customer GSTIN'] = customerInfo['gstin'];
-    }
+    final customerInfo = data['customer_info'] as Map?;
+    flattened['Customer Name'] = _safeGetString(customerInfo, 'name');
+    flattened['Customer Address'] = _safeGetString(customerInfo, 'address');
+    flattened['Customer Contact'] = _safeGetString(customerInfo, 'contact');
+    flattened['Customer GSTIN'] = _safeGetString(customerInfo, 'gstin');
 
     // Invoice Details
-    if (data['invoice_details'] != null && data['invoice_details'] is Map) {
-      final invoiceDetails = data['invoice_details'] as Map;
-      flattened['Invoice Date'] = invoiceDetails['date'];
-      flattened['Bill Number'] = invoiceDetails['bill_no'];
-      flattened['Gold Price Per Unit'] = invoiceDetails['gold_price_per_unit'];
-    }
+    final invoiceDetails = data['invoice_details'] as Map?;
+    flattened['Invoice Date'] = _safeGetString(invoiceDetails, 'date');
+    flattened['Bill Number'] = _safeGetString(invoiceDetails, 'bill_no');
+    flattened['Gold Price Per Unit'] = _safeGetNumber(invoiceDetails, 'gold_price_per_unit');
 
     // Line Items - summarize or show first item
     if (data['line_items'] != null && data['line_items'] is List) {
       final lineItems = data['line_items'] as List;
       if (lineItems.isNotEmpty) {
-        final firstItem = lineItems.first as Map;
-        flattened['Item Description'] = firstItem['description'];
-        flattened['HSN Code'] = firstItem['hsn_code'];
-        flattened['Weight'] = firstItem['weight'];
-        flattened['Wastage %'] = firstItem['wastage_allowance_percentage'];
-        flattened['Rate'] = firstItem['rate'];
-        flattened['Making Charges %'] = firstItem['making_charges_percentage'];
-        flattened['Item Amount'] = firstItem['amount'];
+        final firstItem = lineItems.first as Map?;
+        flattened['Item Description'] = _safeGetString(firstItem, 'description');
+        flattened['HSN Code'] = _safeGetString(firstItem, 'hsn_code');
+        flattened['Weight'] = _safeGetNumber(firstItem, 'weight');
+        flattened['Wastage %'] = _safeGetNumber(firstItem, 'wastage_allowance_percentage');
+        flattened['Rate'] = _safeGetNumber(firstItem, 'rate');
+        flattened['Making Charges %'] = _safeGetNumber(firstItem, 'making_charges_percentage');
+        flattened['Item Amount'] = _safeGetNumber(firstItem, 'amount');
       }
       // Add count of total items if more than one
       if (lineItems.length > 1) {
@@ -449,30 +459,24 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     }
 
     // Summary
-    if (data['summary'] != null && data['summary'] is Map) {
-      final summary = data['summary'] as Map;
-      flattened['Sub Total'] = summary['sub_total'];
-      flattened['Discount'] = summary['discount'];
-      flattened['Taxable Amount'] = summary['taxable_amount'];
-      flattened['SGST %'] = summary['sgst_percentage'];
-      flattened['SGST Amount'] = summary['sgst_amount'];
-      flattened['CGST %'] = summary['cgst_percentage'];
-      flattened['CGST Amount'] = summary['cgst_amount'];
-      flattened['Grand Total'] = summary['grand_total'];
-    }
+    final summary = data['summary'] as Map?;
+    flattened['Sub Total'] = _safeGetNumber(summary, 'sub_total');
+    flattened['Discount'] = _safeGetNumber(summary, 'discount');
+    flattened['Taxable Amount'] = _safeGetNumber(summary, 'taxable_amount');
+    flattened['SGST %'] = _safeGetNumber(summary, 'sgst_percentage');
+    flattened['SGST Amount'] = _safeGetNumber(summary, 'sgst_amount');
+    flattened['CGST %'] = _safeGetNumber(summary, 'cgst_percentage');
+    flattened['CGST Amount'] = _safeGetNumber(summary, 'cgst_amount');
+    flattened['Grand Total'] = _safeGetNumber(summary, 'grand_total');
 
     // Payment Details
-    if (data['payment_details'] != null && data['payment_details'] is Map) {
-      final paymentDetails = data['payment_details'] as Map;
-      flattened['Payment Cash'] = paymentDetails['cash'];
-      flattened['Payment UPI'] = paymentDetails['upi'];
-      flattened['Payment Card'] = paymentDetails['card'];
-    }
+    final paymentDetails = data['payment_details'] as Map?;
+    flattened['Payment Cash'] = _safeGetNumber(paymentDetails, 'cash');
+    flattened['Payment UPI'] = _safeGetNumber(paymentDetails, 'upi');
+    flattened['Payment Card'] = _safeGetNumber(paymentDetails, 'card');
 
     // Total Amount in Words
-    if (data['total_amount_in_words'] != null) {
-      flattened['Amount in Words'] = data['total_amount_in_words'];
-    }
+    flattened['Amount in Words'] = _safeGetString(data, 'total_amount_in_words');
 
     return flattened;
   }

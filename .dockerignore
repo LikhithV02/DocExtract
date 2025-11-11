@@ -69,6 +69,13 @@ windows/
 macos/
 linux/
 
+# Flutter cache and generated files (contain host absolute paths)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.metadata
+
 # Other backend files
 backend/tests/
 backend/.pytest_cache/

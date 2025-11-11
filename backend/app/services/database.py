@@ -146,6 +146,37 @@ class DatabaseService:
         logger.warning(f"Document not found for deletion: {document_id}")
         return False
 
+    async def update_document(self, document: ExtractedDocument) -> bool:
+        """
+        Update an existing document
+
+        Args:
+            document: ExtractedDocument with updated data
+
+        Returns:
+            True if updated, False if not found
+        """
+        collection = self.db[self.collection_name]
+
+        doc_dict = document.model_dump()
+        doc_dict["created_at"] = document.created_at.isoformat()
+
+        # Convert extracted_data to dict
+        if hasattr(document.extracted_data, "model_dump"):
+            doc_dict["extracted_data"] = document.extracted_data.model_dump()
+
+        result = await collection.replace_one(
+            {"id": document.id},
+            doc_dict,
+        )
+
+        if result.modified_count > 0 or result.matched_count > 0:
+            logger.info(f"Updated document: {document.id}")
+            return True
+
+        logger.warning(f"Document not found for update: {document.id}")
+        return False
+
     async def get_stats(self) -> Dict[str, int]:
         """
         Get document statistics
