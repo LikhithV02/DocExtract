@@ -53,7 +53,7 @@ class _DocumentTypeSelectionScreenState
       final llamaParseService = LlamaParseService(apiKey: apiKey);
 
       // Extract data
-      final result = await llamaParseService.extractDocument(
+      final extractedData = await llamaParseService.extractDocument(
         file: widget.file,
         fileBytes: widget.fileBytes,
         fileName: widget.fileName,
@@ -65,7 +65,7 @@ class _DocumentTypeSelectionScreenState
         id: const Uuid().v4(),
         documentType: _selectedType!,
         fileName: widget.fileName,
-        extractedData: result['data'] ?? result,
+        extractedData: extractedData,
         createdAt: DateTime.now(),
       );
 

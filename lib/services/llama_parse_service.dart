@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LlamaParseService {
   final String apiKey;
@@ -21,41 +20,70 @@ class LlamaParseService {
       final dataSchema = _getDataSchema(documentType);
       final config = _getExtractionConfig();
 
-      var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
-
-      // Add headers
-      request.headers['Authorization'] = 'Bearer $apiKey';
-
-      // Add file
-      if (kIsWeb && fileBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes(
-          'file',
-          fileBytes,
-          filename: fileName,
-        ));
+      // Read file bytes
+      Uint8List bytes;
+      if (fileBytes != null) {
+        bytes = fileBytes;
       } else if (file != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'file',
-          file.path,
-          filename: fileName,
-        ));
+        bytes = await file.readAsBytes();
       } else {
         throw Exception('No file provided');
       }
 
-      // Add data schema and config
-      request.fields['data_schema'] = jsonEncode(dataSchema);
-      request.fields['config'] = jsonEncode(config);
+      // Encode file as base64
+      final base64Data = base64Encode(bytes);
 
-      // Send request
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      // Determine MIME type
+      final mimeType = fileName.toLowerCase().endsWith('.pdf')
+          ? 'application/pdf'
+          : 'image/jpeg';
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception('Failed to extract document: ${response.statusCode} - ${response.body}');
+      // Create JSON payload
+      final payload = {
+        'data_schema': dataSchema,
+        'config': config,
+        'file': {
+          'data': base64Data,
+          'mime_type': mimeType,
+        },
+      };
+
+      // Send extraction request
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to submit extraction: ${response.statusCode} - ${response.body}');
       }
+
+      final jobData = jsonDecode(response.body);
+      final jobId = jobData['id'];
+
+      // Poll for results
+      for (int attempt = 0; attempt < 30; attempt++) {
+        await Future.delayed(const Duration(seconds: 2));
+
+        final resultResponse = await http.get(
+          Uri.parse('https://api.cloud.llamaindex.ai/api/v1/extraction/jobs/$jobId/result'),
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (resultResponse.statusCode == 200) {
+          final result = jsonDecode(resultResponse.body);
+          return result['data'] ?? result;
+        }
+      }
+
+      throw Exception('Extraction timeout - job did not complete in time');
     } catch (e) {
       throw Exception('Error extracting document: $e');
     }

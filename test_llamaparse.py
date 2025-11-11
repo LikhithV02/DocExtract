@@ -68,7 +68,8 @@ def test_api_endpoint():
     print()
 
     headers = {
-        'Authorization': f'Bearer {API_KEY}'
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
     }
 
     # Test endpoint availability
@@ -81,8 +82,10 @@ def test_api_endpoint():
             print("   (405 = Method Not Allowed - expected, endpoint requires POST)")
         elif response.status_code == 401:
             print("   ❌ Authentication failed - check your API key")
+            return False
         elif response.status_code == 403:
             print("   ❌ Forbidden - check your API key permissions")
+            return False
 
         return True
     except requests.exceptions.RequestException as e:
@@ -91,6 +94,8 @@ def test_api_endpoint():
 
 def test_extraction(file_path):
     """Test actual document extraction"""
+    import base64
+
     print("\n📤 Testing document extraction...")
     print(f"File: {file_path}")
     print()
@@ -99,35 +104,65 @@ def test_extraction(file_path):
         print(f"❌ Error: File not found: {file_path}")
         return
 
+    # Read file and encode as base64
+    with open(file_path, 'rb') as f:
+        file_data = base64.b64encode(f.read()).decode('utf-8')
+
+    # Determine MIME type
+    mime_type = 'image/jpeg' if file_path.lower().endswith(('.jpg', '.jpeg')) else 'application/pdf'
+
     headers = {
-        'Authorization': f'Bearer {API_KEY}'
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
     }
 
-    files = {
-        'file': open(file_path, 'rb')
-    }
-
-    data = {
-        'data_schema': json.dumps(data_schema),
-        'config': json.dumps(config)
+    payload = {
+        'data_schema': data_schema,
+        'config': config,
+        'file': {
+            'data': file_data,
+            'mime_type': mime_type
+        }
     }
 
     try:
         response = requests.post(
             API_URL,
             headers=headers,
-            files=files,
-            data=data,
-            timeout=60
+            json=payload,
+            timeout=120
         )
 
         print(f"Status Code: {response.status_code}")
         print()
 
         if response.status_code == 200:
-            print("✅ SUCCESS! Extraction completed")
-            print("\nExtracted Data:")
-            print(json.dumps(response.json(), indent=2))
+            job_data = response.json()
+            job_id = job_data.get('id')
+            print(f"✅ Extraction job submitted successfully!")
+            print(f"Job ID: {job_id}")
+            print(f"Status: {job_data.get('status')}")
+
+            # Poll for results
+            print("\n⏳ Waiting for extraction to complete...")
+            import time
+            for attempt in range(30):  # Try for up to 60 seconds
+                time.sleep(2)
+                result_url = f'https://api.cloud.llamaindex.ai/api/v1/extraction/jobs/{job_id}/result'
+                result_response = requests.get(result_url, headers=headers, timeout=10)
+
+                if result_response.status_code == 200:
+                    result = result_response.json()
+                    print("\n✅ SUCCESS! Extraction completed")
+                    print("\n" + "=" * 60)
+                    print("EXTRACTED DATA:")
+                    print("=" * 60)
+                    print(json.dumps(result.get('data', result), indent=2))
+                    break
+                elif attempt < 29:
+                    print(f"   Attempt {attempt + 1}: Still processing...")
+            else:
+                print("\n⏱️ Timeout waiting for extraction to complete")
         else:
             print("❌ Request failed")
             print("\nResponse:")
@@ -138,8 +173,6 @@ def test_extraction(file_path):
 
     except requests.exceptions.RequestException as e:
         print(f"❌ Error during extraction: {e}")
-    finally:
-        files['file'].close()
 
 if __name__ == "__main__":
     # Check API endpoint
