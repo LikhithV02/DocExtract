@@ -29,9 +29,12 @@ FROM nginx:alpine
 # Copy built web app from build stage
 COPY --from=build-stage /app/build/web /usr/share/nginx/html
 
-# Copy custom nginx configuration for Flutter SPA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom nginx configuration template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-EXPOSE 80
+# Expose port (Railway will provide PORT env var)
+EXPOSE ${PORT:-80}
 
+# The nginx docker image automatically processes templates in /etc/nginx/templates/
+# and substitutes environment variables before starting nginx
 CMD ["nginx", "-g", "daemon off;"]
