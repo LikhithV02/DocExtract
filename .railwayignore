@@ -1,0 +1,52 @@
+# Railway ignore file for Frontend deployment
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (exclude from frontend build)
+*.md
+docs/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test files
+test/
+*_test.dart
+integration_test/
+
+# Backend files (not needed for frontend)
+backend/
+
+# Build artifacts (will be rebuilt)
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.log
+
+# Node modules (if any)
+node_modules/
+
+# Coverage
+coverage/

@@ -1,0 +1,68 @@
+# Railway ignore file for Backend deployment
+
+# Git files
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+tests/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Environment files (will be set in Railway)
+.env
+.env.*
+!.env.example
+!.env.railway.example
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Database files (use external MongoDB)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (use external storage in production)
+uploads/
