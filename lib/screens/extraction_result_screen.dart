@@ -28,6 +28,11 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     super.initState();
     _editedData = Map<String, dynamic>.from(widget.document.extractedData);
 
+    // Flatten invoice data for better table display
+    if (widget.document.documentType == 'invoice') {
+      _editedData = _flattenInvoiceData(_editedData);
+    }
+
     // Initialize controllers for each field
     _editedData.forEach((key, value) {
       _controllers[key] = TextEditingController(
@@ -387,7 +392,97 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     );
   }
 
+  /// Flatten invoice data structure for better table display
+  Map<String, dynamic> _flattenInvoiceData(Map<String, dynamic> data) {
+    final flattened = <String, dynamic>{};
+
+    // Seller Info
+    if (data['seller_info'] != null && data['seller_info'] is Map) {
+      final sellerInfo = data['seller_info'] as Map;
+      flattened['Seller Name'] = sellerInfo['name'];
+      flattened['Seller GSTIN'] = sellerInfo['gstin'];
+
+      // Handle contact numbers array - take first value
+      if (sellerInfo['contact_numbers'] != null &&
+          sellerInfo['contact_numbers'] is List &&
+          (sellerInfo['contact_numbers'] as List).isNotEmpty) {
+        flattened['Seller Contact'] = (sellerInfo['contact_numbers'] as List).first;
+      } else {
+        flattened['Seller Contact'] = sellerInfo['contact_numbers'];
+      }
+    }
+
+    // Customer Info
+    if (data['customer_info'] != null && data['customer_info'] is Map) {
+      final customerInfo = data['customer_info'] as Map;
+      flattened['Customer Name'] = customerInfo['name'];
+      flattened['Customer Address'] = customerInfo['address'];
+      flattened['Customer Contact'] = customerInfo['contact'];
+      flattened['Customer GSTIN'] = customerInfo['gstin'];
+    }
+
+    // Invoice Details
+    if (data['invoice_details'] != null && data['invoice_details'] is Map) {
+      final invoiceDetails = data['invoice_details'] as Map;
+      flattened['Invoice Date'] = invoiceDetails['date'];
+      flattened['Bill Number'] = invoiceDetails['bill_no'];
+      flattened['Gold Price Per Unit'] = invoiceDetails['gold_price_per_unit'];
+    }
+
+    // Line Items - summarize or show first item
+    if (data['line_items'] != null && data['line_items'] is List) {
+      final lineItems = data['line_items'] as List;
+      if (lineItems.isNotEmpty) {
+        final firstItem = lineItems.first as Map;
+        flattened['Item Description'] = firstItem['description'];
+        flattened['HSN Code'] = firstItem['hsn_code'];
+        flattened['Weight'] = firstItem['weight'];
+        flattened['Wastage %'] = firstItem['wastage_allowance_percentage'];
+        flattened['Rate'] = firstItem['rate'];
+        flattened['Making Charges %'] = firstItem['making_charges_percentage'];
+        flattened['Item Amount'] = firstItem['amount'];
+      }
+      // Add count of total items if more than one
+      if (lineItems.length > 1) {
+        flattened['Total Line Items'] = lineItems.length;
+      }
+    }
+
+    // Summary
+    if (data['summary'] != null && data['summary'] is Map) {
+      final summary = data['summary'] as Map;
+      flattened['Sub Total'] = summary['sub_total'];
+      flattened['Discount'] = summary['discount'];
+      flattened['Taxable Amount'] = summary['taxable_amount'];
+      flattened['SGST %'] = summary['sgst_percentage'];
+      flattened['SGST Amount'] = summary['sgst_amount'];
+      flattened['CGST %'] = summary['cgst_percentage'];
+      flattened['CGST Amount'] = summary['cgst_amount'];
+      flattened['Grand Total'] = summary['grand_total'];
+    }
+
+    // Payment Details
+    if (data['payment_details'] != null && data['payment_details'] is Map) {
+      final paymentDetails = data['payment_details'] as Map;
+      flattened['Payment Cash'] = paymentDetails['cash'];
+      flattened['Payment UPI'] = paymentDetails['upi'];
+      flattened['Payment Card'] = paymentDetails['card'];
+    }
+
+    // Total Amount in Words
+    if (data['total_amount_in_words'] != null) {
+      flattened['Amount in Words'] = data['total_amount_in_words'];
+    }
+
+    return flattened;
+  }
+
   String _formatLabel(String key) {
+    // If key already has capital letters (flattened keys), return as is
+    if (key.contains(RegExp(r'[A-Z]'))) {
+      return key;
+    }
+
     return key
         .split('_')
         .map((word) => word.isEmpty
