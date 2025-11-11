@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../services/api_service.dart';
@@ -126,79 +127,86 @@ class _DocumentTypeSelectionScreenState
                 ],
               ),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.insert_drive_file,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.primary,
+          : Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: kIsWeb ? 600 : double.infinity,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Card(
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.insert_drive_file,
+                                size: 64,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'File: ${widget.fileName}',
+                                style: Theme.of(context).textTheme.titleMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'File: ${widget.fileName}',
-                            style: Theme.of(context).textTheme.titleMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'What type of document is this?',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  _DocumentTypeCard(
-                    icon: Icons.badge,
-                    title: 'Government ID',
-                    description:
-                        'Passport, Driver\'s License, National ID, etc.',
-                    isSelected: _selectedType == 'government_id',
-                    onTap: () {
-                      setState(() {
-                        _selectedType = 'government_id';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _DocumentTypeCard(
-                    icon: Icons.receipt_long,
-                    title: 'Invoice',
-                    description: 'Bills, Receipts, Purchase Orders, etc.',
-                    isSelected: _selectedType == 'invoice',
-                    onTap: () {
-                      setState(() {
-                        _selectedType = 'invoice';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _selectedType != null ? _processDocument : null,
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Extract Information',
-                        style: TextStyle(fontSize: 16),
+                      const SizedBox(height: 32),
+                      Text(
+                        'What type of document is this?',
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      _DocumentTypeCard(
+                        icon: Icons.badge,
+                        title: 'Government ID',
+                        description:
+                            'Passport, Driver\'s License, National ID, etc.',
+                        isSelected: _selectedType == 'government_id',
+                        onTap: () {
+                          setState(() {
+                            _selectedType = 'government_id';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _DocumentTypeCard(
+                        icon: Icons.receipt_long,
+                        title: 'Invoice',
+                        description: 'Bills, Receipts, Purchase Orders, etc.',
+                        isSelected: _selectedType == 'invoice',
+                        onTap: () {
+                          setState(() {
+                            _selectedType = 'invoice';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _selectedType != null ? _processDocument : null,
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Extract Information',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
     );
