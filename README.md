@@ -146,6 +146,115 @@ static const String baseUrl = 'http://localhost:8000';
 static const String wsUrl = 'ws://localhost:8000/ws/documents';
 ```
 
+## 🧑‍💻 Local Development & Testing
+
+### Backend - Docker Commands
+
+**Build the Docker images:**
+```bash
+cd backend
+docker-compose build
+```
+
+**Start the backend services:**
+```bash
+docker-compose up
+```
+
+**Start in detached mode (background):**
+```bash
+docker-compose up -d
+```
+
+**View logs:**
+```bash
+docker-compose logs -f
+```
+
+**Stop services:**
+```bash
+docker-compose down
+```
+
+**Rebuild and restart (after code changes):**
+```bash
+docker-compose down
+docker-compose build
+docker-compose up
+```
+
+**Clean reset (removes volumes):**
+```bash
+docker-compose down -v
+docker-compose build
+docker-compose up
+```
+
+**Backend will be available at:**
+- API: http://localhost:8000
+- Health check: http://localhost:8000/health
+- API docs: http://localhost:8000/docs
+
+### Flutter Web - Local Testing
+
+**Run Flutter web with hot reload:**
+```bash
+# Basic run (uses default port)
+flutter run -d chrome
+
+# Run on specific port
+flutter run -d chrome --web-port 3000
+
+# Run with custom API endpoint (for local backend)
+flutter run -d chrome \
+  --dart-define=API_BASE_URL=http://localhost:8000 \
+  --dart-define=WS_URL=ws://localhost:8000/ws/documents
+```
+
+**Build Flutter web for testing:**
+```bash
+# Production build
+flutter build web --release
+
+# Development build with API config
+flutter build web \
+  --dart-define=API_BASE_URL=http://localhost:8000 \
+  --dart-define=WS_URL=ws://localhost:8000/ws/documents
+```
+
+**Serve built web app locally:**
+```bash
+# Install dhttpd if not already installed
+dart pub global activate dhttpd
+
+# Serve the built web app
+dhttpd --path build/web --port 8080
+```
+
+**Flutter web will be available at:**
+- Development server: http://localhost:PORT (auto-assigned or specified)
+- Built app: http://localhost:8080 (if using dhttpd)
+
+### Testing Both Together
+
+1. **Start backend:**
+   ```bash
+   cd backend
+   docker-compose up
+   ```
+
+2. **In a new terminal, start Flutter web:**
+   ```bash
+   flutter run -d chrome \
+     --dart-define=API_BASE_URL=http://localhost:8000 \
+     --dart-define=WS_URL=ws://localhost:8000/ws/documents
+   ```
+
+3. **Test the integration:**
+   - Upload a document
+   - Check WebSocket real-time sync
+   - View backend logs: `docker-compose logs -f`
+
 ## 🌐 Production Deployment
 
 ### VPS Deployment
