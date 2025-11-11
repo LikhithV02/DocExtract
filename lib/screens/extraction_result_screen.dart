@@ -1,15 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../models/extracted_document.dart';
+import '../providers/document_provider.dart';
 
-class ExtractionResultScreen extends StatelessWidget {
+class ExtractionResultScreen extends StatefulWidget {
   final ExtractedDocument document;
 
   const ExtractionResultScreen({
     super.key,
     required this.document,
   });
+
+  @override
+  State<ExtractionResultScreen> createState() => _ExtractionResultScreenState();
+}
+
+class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
+  late Map<String, dynamic> _editedData;
+  final Map<String, TextEditingController> _controllers = {};
+  bool _isEditing = false;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _editedData = Map<String, dynamic>.from(widget.document.extractedData);
+
+    // Initialize controllers for each field
+    _editedData.forEach((key, value) {
+      _controllers[key] = TextEditingController(
+        text: _formatValue(value),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   void _copyToClipboard(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -21,124 +54,334 @@ class ExtractionResultScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _saveChanges() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // Update edited data from controllers
+      for (final entry in _controllers.entries) {
+        final key = entry.key;
+        final controller = entry.value;
+        final originalValue = _editedData[key];
+
+        if (originalValue is num) {
+          _editedData[key] = num.tryParse(controller.text) ?? controller.text;
+        } else if (originalValue is bool) {
+          _editedData[key] = controller.text.toLowerCase() == 'true';
+        } else {
+          _editedData[key] = controller.text;
+        }
+      }
+
+      // Create updated document
+      final updatedDocument = ExtractedDocument(
+        id: widget.document.id,
+        documentType: widget.document.documentType,
+        fileName: widget.document.fileName,
+        extractedData: _editedData,
+        createdAt: widget.document.createdAt,
+      );
+
+      // Save to database
+      if (mounted) {
+        await context.read<DocumentProvider>().updateDocument(updatedDocument);
+
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+            _isEditing = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Changes saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving changes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (!_isEditing) {
+        // Reset controllers to original values
+        _editedData.forEach((key, value) {
+          _controllers[key]?.text = _formatValue(value);
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Extraction Results'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.copy_all),
-            onPressed: () {
-              final jsonString = const JsonEncoder.withIndent('  ')
-                  .convert(document.extractedData);
-              _copyToClipboard(context, jsonString);
-            },
-            tooltip: 'Copy all data',
-          ),
+          if (!_isEditing) ...[
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: _toggleEditMode,
+              tooltip: 'Edit',
+            ),
+            IconButton(
+              icon: const Icon(Icons.copy_all),
+              onPressed: () {
+                final jsonString = const JsonEncoder.withIndent('  ')
+                    .convert(_editedData);
+                _copyToClipboard(context, jsonString);
+              },
+              tooltip: 'Copy all data',
+            ),
+          ] else ...[
+            TextButton.icon(
+              icon: const Icon(Icons.close),
+              label: const Text('Cancel'),
+              onPressed: _isSaving ? null : _toggleEditMode,
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.save),
+              label: const Text('Save'),
+              onPressed: _isSaving ? null : _saveChanges,
+            ),
+          ],
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          document.documentType == 'government_id'
-                              ? Icons.badge
-                              : Icons.receipt_long,
-                          size: 32,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+      body: _isSaving
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 24),
+                  Text('Saving changes...'),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Text(
-                                document.documentType == 'government_id'
-                                    ? 'Government ID'
-                                    : 'Invoice',
-                                style: Theme.of(context).textTheme.titleLarge,
+                              Icon(
+                                widget.document.documentType == 'government_id'
+                                    ? Icons.badge
+                                    : Icons.receipt_long,
+                                size: 32,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.document.documentType ==
+                                              'government_id'
+                                          ? 'Government ID'
+                                          : 'Invoice',
+                                      style:
+                                          Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.document.fileName,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 24),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 16),
+                              const SizedBox(width: 8),
                               Text(
-                                document.fileName,
+                                'Extracted: ${_formatDate(widget.document.createdAt)}',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Divider(height: 24),
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Extracted: ${_formatDate(document.createdAt)}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Extracted Information',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (_isEditing)
+                        Chip(
+                          avatar: const Icon(Icons.edit, size: 16),
+                          label: const Text('Editing Mode'),
+                          backgroundColor: Colors.blue.shade100,
                         ),
-                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_editedData.isEmpty)
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          'No data extracted from the document.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  else
+                    _buildDataTable(),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check),
+                      label: const Text('Done'),
+                      onPressed: () {
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Extracted Information',
-              style: Theme.of(context).textTheme.titleLarge,
+    );
+  }
+
+  Widget _buildDataTable() {
+    return Card(
+      elevation: 2,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: MediaQuery.of(context).size.width - 32,
+          ),
+          child: DataTable(
+            headingRowColor: MaterialStateProperty.all(
+              Theme.of(context).colorScheme.primary.withOpacity(0.1),
             ),
-            const SizedBox(height: 16),
-            if (document.extractedData.isEmpty)
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'No data extracted from the document.',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              )
-            else
-              ...document.extractedData.entries.map((entry) {
-                return _DataField(
-                  label: _formatLabel(entry.key),
-                  value: _formatValue(entry.value),
-                  onCopy: () {
-                    _copyToClipboard(
-                        context, _formatValue(entry.value));
-                  },
-                );
-              }),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.check),
-                label: const Text('Done'),
-                onPressed: () {
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+            columns: [
+              DataColumn(
+                label: Text(
+                  'Field',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ),
-            ),
-          ],
+              DataColumn(
+                label: Text(
+                  'Value',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+              if (!_isEditing)
+                DataColumn(
+                  label: Text(
+                    'Actions',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+            ],
+            rows: _editedData.entries.map((entry) {
+              return DataRow(
+                cells: [
+                  DataCell(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 150),
+                      child: Text(
+                        _formatLabel(entry.key),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    _isEditing
+                        ? ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 300,
+                              minWidth: 200,
+                            ),
+                            child: TextField(
+                              controller: _controllers[entry.key],
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
+                                ),
+                                isDense: true,
+                              ),
+                              maxLines: null,
+                            ),
+                          )
+                        : ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 300),
+                            child: SelectableText(
+                              _formatValue(entry.value),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                  ),
+                  if (!_isEditing)
+                    DataCell(
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 18),
+                        onPressed: () {
+                          _copyToClipboard(
+                              context, _formatValue(entry.value));
+                        },
+                        tooltip: 'Copy',
+                      ),
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
@@ -163,75 +406,5 @@ class ExtractionResultScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _DataField extends StatelessWidget {
-  final String label;
-  final String value;
-  final VoidCallback onCopy;
-
-  const _DataField({
-    required this.label,
-    required this.value,
-    required this.onCopy,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isLongValue = value.length > 100 || value.contains('\n');
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 18),
-                  onPressed: onCopy,
-                  tooltip: 'Copy',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (isLongValue)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SelectableText(
-                  value,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'monospace',
-                      ),
-                ),
-              )
-            else
-              SelectableText(
-                value,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }

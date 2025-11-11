@@ -187,6 +187,27 @@ class DocumentProvider with ChangeNotifier {
     }
   }
 
+  /// Update an existing document
+  Future<void> updateDocument(ExtractedDocument document) async {
+    try {
+      final updatedDocument = await _apiService.updateDocument(document);
+
+      final index = _documents.indexWhere((d) => d.id == document.id);
+      if (index != -1) {
+        _documents[index] = updatedDocument;
+        notifyListeners();
+      }
+
+      // Refresh stats
+      await loadStats();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      debugPrint('Error updating document: $e');
+      rethrow;
+    }
+  }
+
   /// Delete a document
   Future<void> deleteDocument(String id) async {
     try {

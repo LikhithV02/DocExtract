@@ -159,6 +159,34 @@ class ApiService {
     }
   }
 
+  /// Update an existing document
+  ///
+  /// [document] - ExtractedDocument to update
+  ///
+  /// Returns the updated ExtractedDocument
+  Future<ExtractedDocument> updateDocument(ExtractedDocument document) async {
+    try {
+      final payload = {
+        'document_type': document.documentType,
+        'file_name': document.fileName,
+        'extracted_data': document.extractedData,
+      };
+
+      final response = await _dio.put(
+        '${ApiConfig.documentsEndpoint}/${document.id}',
+        data: payload,
+      );
+
+      if (response.statusCode == 200) {
+        return ExtractedDocument.fromJson(response.data);
+      } else {
+        throw Exception('Failed to update document: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// Delete a document by ID
   ///
   /// [id] - Document ID
