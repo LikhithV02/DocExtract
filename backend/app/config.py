@@ -21,9 +21,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     allowed_origins: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://localhost",
+        "*",  # Allow all origins for development (restrict in production)
     ]
 
     # API Configuration

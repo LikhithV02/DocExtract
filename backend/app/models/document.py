@@ -16,7 +16,7 @@ class ExtractedDocument(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     document_type: Literal["government_id", "invoice"]
     file_name: str
-    extracted_data: Union[GovernmentIdData, InvoiceData]
+    extracted_data: dict  # Accept any dict structure
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
@@ -37,7 +37,7 @@ class DocumentCreate(BaseModel):
 
     document_type: Literal["government_id", "invoice"]
     file_name: str
-    extracted_data: Union[GovernmentIdData, InvoiceData]
+    extracted_data: dict  # Accept any dict structure from Flutter
 
 
 class DocumentResponse(BaseModel):

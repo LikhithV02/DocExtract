@@ -60,6 +60,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
@@ -86,6 +87,15 @@ async def health_check():
         "status": "healthy",
         "database": "connected" if db_service.db is not None else "disconnected",
     }
+
+
+# Add explicit OPTIONS handlers for CORS preflight
+@app.options("/{path:path}")
+async def options_handler():
+    """
+    Handle OPTIONS requests for CORS preflight
+    """
+    return {"status": "ok"}
 
 
 # WebSocket endpoint (mounted separately)

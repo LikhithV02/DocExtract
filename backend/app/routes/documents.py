@@ -57,7 +57,7 @@ async def create_document(document: DocumentCreate):
             id=extracted_doc.id,
             document_type=extracted_doc.document_type,
             file_name=extracted_doc.file_name,
-            extracted_data=extracted_doc.extracted_data.model_dump(),
+            extracted_data=extracted_doc.extracted_data,  # Already a dict
             created_at=extracted_doc.created_at.isoformat(),
         )
 
