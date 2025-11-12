@@ -22,7 +22,6 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
   final Map<String, TextEditingController> _controllers = {};
   bool _isEditing = false;
   bool _isSaving = false;
-  int? _selectedLineItemIndex;
 
   @override
   void initState() {
@@ -39,8 +38,7 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     if (widget.document.documentType == 'invoice') {
       _initializeInvoiceControllers();
     } else {
-      // For non-invoice documents, flatten and initialize controllers
-      _editedData = _flattenInvoiceData(_editedData);
+      // For non-invoice documents, just initialize controllers for each field
       _editedData.forEach((key, value) {
         _controllers[key] = TextEditingController(
           text: _formatValue(value),
@@ -381,332 +379,170 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Main Invoice Details - Vertical Table
         Card(
           elevation: 2,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: MaterialStateProperty.all(
-                Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              ),
-              dataRowMinHeight: 50,
-              dataRowMaxHeight: 80,
-              columnSpacing: 24,
-              columns: [
-                DataColumn(
-                  label: Text(
-                    'Seller Name',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Invoice Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-                DataColumn(
-                  label: Text(
-                    'Seller GSTIN',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Seller Contact',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Customer Name',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Invoice Date',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Bill Number',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                DataColumn(
-                  numeric: true,
-                  label: Text(
-                    'Grand Total',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-              ],
-              rows: [
-                DataRow(
-                  cells: [
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['seller_name'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: Text(
-                                _controllers['seller_name']?.text ?? 'N/A',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['seller_gstin'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : Text(_controllers['seller_gstin']?.text ?? 'N/A'),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['seller_contact'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : Text(_controllers['seller_contact']?.text ?? 'N/A'),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['customer_name'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : Text(_controllers['customer_name']?.text ?? 'N/A'),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['invoice_date'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : Text(_controllers['invoice_date']?.text ?? 'N/A'),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['bill_number'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            )
-                          : Text(_controllers['bill_number']?.text ?? 'N/A'),
-                    ),
-                    DataCell(
-                      _isEditing
-                          ? ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 150),
-                              child: TextField(
-                                controller: _controllers['grand_total'],
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  isDense: true,
-                                ),
-                                keyboardType: TextInputType.number,
-                              ),
-                            )
-                          : Text(
-                              _controllers['grand_total']?.text ?? 'N/A',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 16),
+                _buildInvoiceField('Seller Name', 'seller_name'),
+                _buildInvoiceField('Seller GSTIN', 'seller_gstin'),
+                _buildInvoiceField('Seller Contact', 'seller_contact'),
+                _buildInvoiceField('Customer Name', 'customer_name'),
+                _buildInvoiceField('Invoice Date', 'invoice_date'),
+                _buildInvoiceField('Bill Number', 'bill_number'),
+                _buildInvoiceField('Grand Total', 'grand_total', isNumeric: true, isBold: true),
               ],
             ),
           ),
         ),
+
+        // Line Items - Expanded Table
         if (lineItems.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text(
-            'Line Items',
+            'Line Items (${lineItems.length})',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 8),
-          if (lineItems.length > 1)
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Select an item to view details:',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<int>(
-                      value: _selectedLineItemIndex,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        isDense: true,
-                      ),
-                      hint: const Text('Choose a line item'),
-                      items: List.generate(lineItems.length, (index) {
-                        final item = lineItems[index] as Map?;
-                        final description = item?['description']?.toString() ?? 'Item ${index + 1}';
-                        return DropdownMenuItem<int>(
-                          value: index,
-                          child: Text('${index + 1}. $description'),
-                        );
-                      }),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedLineItemIndex = value;
-                        });
-                      },
-                    ),
-                    if (_selectedLineItemIndex != null) ...[
-                      const SizedBox(height: 16),
-                      _buildLineItemDetails(lineItems[_selectedLineItemIndex!] as Map),
-                    ],
-                  ],
-                ),
-              ),
-            )
-          else
-            _buildLineItemDetails(lineItems[0] as Map),
+          _buildLineItemsTable(lineItems),
         ],
       ],
     );
   }
 
-  Widget _buildLineItemDetails(Map lineItem) {
+  Widget _buildInvoiceField(String label, String controllerKey, {bool isNumeric = false, bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _isEditing
+                ? TextField(
+                    controller: _controllers[controllerKey],
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      isDense: true,
+                    ),
+                    keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+                  )
+                : Text(
+                    _controllers[controllerKey]?.text ?? 'N/A',
+                    style: TextStyle(
+                      fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLineItemsTable(List lineItems) {
     return Card(
-      elevation: 1,
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Description', lineItem['description']),
-            _buildDetailRow('HSN Code', lineItem['hsn_code']),
-            _buildDetailRow('Weight', lineItem['weight']),
-            _buildDetailRow('Wastage %', lineItem['wastage_allowance_percentage']),
-            _buildDetailRow('Rate', lineItem['rate']),
-            _buildDetailRow('Making Charges %', lineItem['making_charges_percentage']),
-            _buildDetailRow('Amount', lineItem['amount'], isBold: true),
+      elevation: 2,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          ),
+          columnSpacing: 16,
+          dataRowMinHeight: 48,
+          columns: [
+            DataColumn(label: Text('#', style: _columnHeaderStyle())),
+            DataColumn(label: Text('Description', style: _columnHeaderStyle())),
+            DataColumn(label: Text('Weight', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('W/A %', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('Rate', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('M/C %', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('Subtotal', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('Discount', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('Taxable', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('SGST', style: _columnHeaderStyle()), numeric: true),
+            DataColumn(label: Text('CGST', style: _columnHeaderStyle()), numeric: true),
           ],
+          rows: List.generate(lineItems.length, (index) {
+            final item = lineItems[index] as Map;
+            return DataRow(
+              cells: [
+                DataCell(Text('${index + 1}')),
+                DataCell(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: Text(
+                      item['description']?.toString() ?? 'N/A',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                DataCell(Text(item['weight']?.toString() ?? 'N/A')),
+                DataCell(Text(item['wastage_allowance_percentage']?.toString() ?? 'N/A')),
+                DataCell(Text(item['rate']?.toString() ?? 'N/A')),
+                DataCell(Text(item['making_charges_percentage']?.toString() ?? 'N/A')),
+                DataCell(Text(_calculateSubtotal(item).toStringAsFixed(2))),
+                DataCell(Text((_editedData['summary']?['discount'] ?? 0).toString())),
+                DataCell(Text((_editedData['summary']?['taxable_amount'] ?? 0).toString())),
+                DataCell(Text((_editedData['summary']?['sgst_amount'] ?? 0).toString())),
+                DataCell(Text((_editedData['summary']?['cgst_amount'] ?? 0).toString())),
+              ],
+            );
+          }),
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, dynamic value, {bool isBold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value?.toString() ?? 'N/A',
-              style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        ],
-      ),
+  TextStyle _columnHeaderStyle() {
+    return const TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 13,
     );
+  }
+
+  double _calculateSubtotal(Map item) {
+    try {
+      final weight = double.tryParse(item['weight']?.toString() ?? '0') ?? 0;
+      final rate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0;
+      final waPercentage = double.tryParse(item['wastage_allowance_percentage']?.toString() ?? '0') ?? 0;
+      final mcPercentage = double.tryParse(item['making_charges_percentage']?.toString() ?? '0') ?? 0;
+
+      double amount = weight * rate;
+      amount = amount * (1 + waPercentage / 100);
+      amount = amount * (1 + mcPercentage / 100);
+
+      return amount;
+    } catch (e) {
+      return 0;
+    }
   }
 
   Widget _buildDataTable() {
