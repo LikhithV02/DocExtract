@@ -22,23 +22,67 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
   final Map<String, TextEditingController> _controllers = {};
   bool _isEditing = false;
   bool _isSaving = false;
+  int? _selectedLineItemIndex;
 
   @override
   void initState() {
     super.initState();
     _editedData = Map<String, dynamic>.from(widget.document.extractedData);
 
-    // Flatten invoice data for better table display
-    if (widget.document.documentType == 'invoice') {
-      _editedData = _flattenInvoiceData(_editedData);
+    // Handle double-nested extracted_data (backward compatibility)
+    if (_editedData.containsKey('extracted_data') &&
+        _editedData['extracted_data'] is Map) {
+      _editedData = _editedData['extracted_data'] as Map<String, dynamic>;
     }
 
-    // Initialize controllers for each field
-    _editedData.forEach((key, value) {
-      _controllers[key] = TextEditingController(
-        text: _formatValue(value),
-      );
-    });
+    // Initialize controllers for invoice fields
+    if (widget.document.documentType == 'invoice') {
+      _initializeInvoiceControllers();
+    } else {
+      // For non-invoice documents, flatten and initialize controllers
+      _editedData = _flattenInvoiceData(_editedData);
+      _editedData.forEach((key, value) {
+        _controllers[key] = TextEditingController(
+          text: _formatValue(value),
+        );
+      });
+    }
+  }
+
+  void _initializeInvoiceControllers() {
+    final sellerInfo = _editedData['seller_info'] as Map?;
+    final customerInfo = _editedData['customer_info'] as Map?;
+    final invoiceDetails = _editedData['invoice_details'] as Map?;
+    final summary = _editedData['summary'] as Map?;
+
+    _controllers['seller_name'] = TextEditingController(
+      text: _safeGetString(sellerInfo, 'name'),
+    );
+    _controllers['seller_gstin'] = TextEditingController(
+      text: _safeGetString(sellerInfo, 'gstin'),
+    );
+
+    // Handle contact numbers array
+    String sellerContact = 'N/A';
+    if (sellerInfo?['contact_numbers'] != null &&
+        sellerInfo!['contact_numbers'] is List &&
+        (sellerInfo['contact_numbers'] as List).isNotEmpty) {
+      sellerContact = (sellerInfo['contact_numbers'] as List).first.toString();
+    }
+    _controllers['seller_contact'] = TextEditingController(text: sellerContact);
+
+    _controllers['customer_name'] = TextEditingController(
+      text: _safeGetString(customerInfo, 'name'),
+    );
+    _controllers['invoice_date'] = TextEditingController(
+      text: _safeGetString(invoiceDetails, 'date'),
+    );
+    _controllers['bill_number'] = TextEditingController(
+      text: _safeGetString(invoiceDetails, 'bill_no'),
+    );
+    _controllers['grand_total'] = TextEditingController(
+      text: _safeGetNumber(summary, 'grand_total').toString(),
+    );
   }
 
   @override
@@ -65,19 +109,50 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
     });
 
     try {
-      // Update edited data from controllers
-      for (final entry in _controllers.entries) {
-        final key = entry.key;
-        final controller = entry.value;
-        final originalValue = _editedData[key];
+      Map<String, dynamic> dataToSave;
 
-        if (originalValue is num) {
-          _editedData[key] = num.tryParse(controller.text) ?? controller.text;
-        } else if (originalValue is bool) {
-          _editedData[key] = controller.text.toLowerCase() == 'true';
-        } else {
-          _editedData[key] = controller.text;
+      if (widget.document.documentType == 'invoice') {
+        // Reconstruct the nested structure for invoices
+        final sellerInfo = _editedData['seller_info'] as Map? ?? {};
+        final customerInfo = _editedData['customer_info'] as Map? ?? {};
+        final invoiceDetails = _editedData['invoice_details'] as Map? ?? {};
+        final summary = _editedData['summary'] as Map? ?? {};
+
+        // Update with edited values
+        sellerInfo['name'] = _controllers['seller_name']?.text ?? 'N/A';
+        sellerInfo['gstin'] = _controllers['seller_gstin']?.text ?? 'N/A';
+        sellerInfo['contact_numbers'] = [_controllers['seller_contact']?.text ?? 'N/A'];
+
+        customerInfo['name'] = _controllers['customer_name']?.text ?? 'N/A';
+
+        invoiceDetails['date'] = _controllers['invoice_date']?.text ?? 'N/A';
+        invoiceDetails['bill_no'] = _controllers['bill_number']?.text ?? 'N/A';
+
+        final grandTotalText = _controllers['grand_total']?.text ?? '0';
+        summary['grand_total'] = num.tryParse(grandTotalText) ?? grandTotalText;
+
+        _editedData['seller_info'] = sellerInfo;
+        _editedData['customer_info'] = customerInfo;
+        _editedData['invoice_details'] = invoiceDetails;
+        _editedData['summary'] = summary;
+
+        dataToSave = _editedData;
+      } else {
+        // For non-invoice documents, use flattened structure
+        for (final entry in _controllers.entries) {
+          final key = entry.key;
+          final controller = entry.value;
+          final originalValue = _editedData[key];
+
+          if (originalValue is num) {
+            _editedData[key] = num.tryParse(controller.text) ?? controller.text;
+          } else if (originalValue is bool) {
+            _editedData[key] = controller.text.toLowerCase() == 'true';
+          } else {
+            _editedData[key] = controller.text;
+          }
         }
+        dataToSave = _editedData;
       }
 
       // Create updated document
@@ -85,7 +160,7 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
         id: widget.document.id,
         documentType: widget.document.documentType,
         fileName: widget.document.fileName,
-        extractedData: _editedData,
+        extractedData: dataToSave,
         createdAt: widget.document.createdAt,
       );
 
@@ -128,9 +203,13 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
       _isEditing = !_isEditing;
       if (!_isEditing) {
         // Reset controllers to original values
-        _editedData.forEach((key, value) {
-          _controllers[key]?.text = _formatValue(value);
-        });
+        if (widget.document.documentType == 'invoice') {
+          _initializeInvoiceControllers();
+        } else {
+          _editedData.forEach((key, value) {
+            _controllers[key]?.text = _formatValue(value);
+          });
+        }
       }
     });
   }
@@ -246,7 +325,9 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Extracted Information',
+                        widget.document.documentType == 'invoice'
+                            ? 'Invoice Details'
+                            : 'Extracted Information',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       if (_isEditing)
@@ -268,6 +349,8 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
                         ),
                       ),
                     )
+                  else if (widget.document.documentType == 'invoice')
+                    _buildInvoiceTable()
                   else
                     _buildDataTable(),
                   const SizedBox(height: 24),
@@ -289,6 +372,340 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildInvoiceTable() {
+    final lineItems = _editedData['line_items'] as List? ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          elevation: 2,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(
+                Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              ),
+              dataRowMinHeight: 50,
+              dataRowMaxHeight: 80,
+              columnSpacing: 24,
+              columns: [
+                DataColumn(
+                  label: Text(
+                    'Seller Name',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Seller GSTIN',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Seller Contact',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Customer Name',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Invoice Date',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Bill Number',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'Grand Total',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+              ],
+              rows: [
+                DataRow(
+                  cells: [
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['seller_name'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: Text(
+                                _controllers['seller_name']?.text ?? 'N/A',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['seller_gstin'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : Text(_controllers['seller_gstin']?.text ?? 'N/A'),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['seller_contact'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : Text(_controllers['seller_contact']?.text ?? 'N/A'),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['customer_name'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : Text(_controllers['customer_name']?.text ?? 'N/A'),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['invoice_date'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : Text(_controllers['invoice_date']?.text ?? 'N/A'),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['bill_number'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            )
+                          : Text(_controllers['bill_number']?.text ?? 'N/A'),
+                    ),
+                    DataCell(
+                      _isEditing
+                          ? ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: TextField(
+                                controller: _controllers['grand_total'],
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                  isDense: true,
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            )
+                          : Text(
+                              _controllers['grand_total']?.text ?? 'N/A',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (lineItems.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text(
+            'Line Items',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          if (lineItems.length > 1)
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select an item to view details:',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      value: _selectedLineItemIndex,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      hint: const Text('Choose a line item'),
+                      items: List.generate(lineItems.length, (index) {
+                        final item = lineItems[index] as Map?;
+                        final description = item?['description']?.toString() ?? 'Item ${index + 1}';
+                        return DropdownMenuItem<int>(
+                          value: index,
+                          child: Text('${index + 1}. $description'),
+                        );
+                      }),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedLineItemIndex = value;
+                        });
+                      },
+                    ),
+                    if (_selectedLineItemIndex != null) ...[
+                      const SizedBox(height: 16),
+                      _buildLineItemDetails(lineItems[_selectedLineItemIndex!] as Map),
+                    ],
+                  ],
+                ),
+              ),
+            )
+          else
+            _buildLineItemDetails(lineItems[0] as Map),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLineItemDetails(Map lineItem) {
+    return Card(
+      elevation: 1,
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('Description', lineItem['description']),
+            _buildDetailRow('HSN Code', lineItem['hsn_code']),
+            _buildDetailRow('Weight', lineItem['weight']),
+            _buildDetailRow('Wastage %', lineItem['wastage_allowance_percentage']),
+            _buildDetailRow('Rate', lineItem['rate']),
+            _buildDetailRow('Making Charges %', lineItem['making_charges_percentage']),
+            _buildDetailRow('Amount', lineItem['amount'], isBold: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, dynamic value, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value?.toString() ?? 'N/A',
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
