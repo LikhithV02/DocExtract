@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source files
 COPY . .
@@ -18,19 +18,16 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS runner
-
-WORKDIR /app
+FROM nginx:alpine AS runner
 
 # Copy built assets from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 8080
 
-# Start the application in preview mode
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "8080"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

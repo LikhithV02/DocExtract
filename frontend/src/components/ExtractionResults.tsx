@@ -2,6 +2,7 @@ import { CheckCircle2, FileText, Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 interface ExtractionResultsProps {
   data: any;
@@ -16,6 +17,9 @@ export const ExtractionResults = ({
   documentType,
   onReset,
 }: ExtractionResultsProps) => {
+  // Normalize data structure - handle both direct and nested extracted_data
+  const normalizedData = data?.extracted_data ? data.extracted_data : data;
+
   const downloadJSON = () => {
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: "application/json" });
@@ -70,6 +74,68 @@ export const ExtractionResults = ({
                   <p className="font-medium">₹{invoiceData.invoice_details.gold_price_per_unit}</p>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {invoiceData.line_items && invoiceData.line_items.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Line Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead>HSN Code</TableHead>
+                    <TableHead className="text-right">Weight</TableHead>
+                    <TableHead className="text-right">Wastage %</TableHead>
+                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">Making %</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoiceData.line_items.map((item: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{item.description}</TableCell>
+                      <TableCell>{item.hsn_code}</TableCell>
+                      <TableCell className="text-right">{item.weight}</TableCell>
+                      <TableCell className="text-right">{item.wastage_allowance_percentage}%</TableCell>
+                      <TableCell className="text-right">₹{item.rate}</TableCell>
+                      <TableCell className="text-right">{item.making_charges_percentage}%</TableCell>
+                      <TableCell className="text-right font-semibold">₹{item.amount}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {invoiceData.payment_details && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Payment Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Cash</p>
+                <p className="font-medium text-lg">₹{invoiceData.payment_details.cash || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">UPI</p>
+                <p className="font-medium text-lg">₹{invoiceData.payment_details.upi || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Card</p>
+                <p className="font-medium text-lg">₹{invoiceData.payment_details.card || 0}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -173,7 +239,7 @@ export const ExtractionResults = ({
         </Button>
       </div>
 
-      {documentType === "invoice" ? renderInvoiceData(data) : renderGovernmentIdData(data)}
+      {documentType === "invoice" ? renderInvoiceData(normalizedData) : renderGovernmentIdData(normalizedData)}
     </div>
   );
 };

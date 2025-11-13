@@ -11,15 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, Document } from "@/lib/api";
-import { sampleInvoices } from "@/lib/sampleData";
-import { Search, FileText, Loader2, Sparkles, Eye, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Search, FileText, Loader2, Eye, Trash2, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 
 const History = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingSamples, setIsLoadingSamples] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("invoice");
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
@@ -63,16 +61,8 @@ const History = () => {
   };
 
   useEffect(() => {
-    // Load sample data directly for demo purposes
-    const sampleDocs: Document[] = sampleInvoices.map((sample, index) => ({
-      id: `sample-${index}`,
-      document_type: sample.document_type as "invoice" | "government_id",
-      file_name: sample.file_name,
-      extracted_data: sample.extracted_data,
-      created_at: new Date(Date.now() - index * 86400000).toISOString(),
-    }));
-    setDocuments(sampleDocs);
-    setIsLoading(false);
+    // Fetch documents from backend on mount
+    fetchDocuments();
   }, []);
 
   useEffect(() => {
@@ -88,34 +78,21 @@ const History = () => {
   }, [searchQuery, filterType, documents]);
 
   const handleDelete = async (id: string) => {
-    // Delete from local state for demo
-    setDocuments(documents.filter((doc) => doc.id !== id));
-    toast({
-      title: "Document Deleted",
-      description: "Document removed successfully",
-    });
-  };
-
-  const loadSampleData = async () => {
-    setIsLoadingSamples(true);
-    
-    // Add more sample data for demo
-    const newSampleDocs: Document[] = sampleInvoices.map((sample, index) => ({
-      id: `additional-sample-${Date.now()}-${index}`,
-      document_type: sample.document_type as "invoice" | "government_id",
-      file_name: sample.file_name,
-      extracted_data: sample.extracted_data,
-      created_at: new Date(Date.now() - index * 3600000).toISOString(),
-    }));
-
-    setDocuments([...documents, ...newSampleDocs]);
-    
-    toast({
-      title: "Sample Data Loaded!",
-      description: `Added ${sampleInvoices.length} sample documents`,
-    });
-    
-    setIsLoadingSamples(false);
+    try {
+      await api.deleteDocument(id);
+      setDocuments(documents.filter((doc) => doc.id !== id));
+      toast({
+        title: "Document Deleted",
+        description: "Document removed successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -196,60 +173,22 @@ const History = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">No Documents Found</h3>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-muted-foreground">
                     {searchQuery
                       ? "Try adjusting your search"
-                      : "Start by extracting your first document or load sample data"}
+                      : "Start by extracting your first document"}
                   </p>
                 </div>
-                {!searchQuery && documents.length === 0 && (
-                  <Button
-                    onClick={loadSampleData}
-                    disabled={isLoadingSamples}
-                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                    size="lg"
-                  >
-                    {isLoadingSamples ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Loading Samples...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Load Sample Documents
-                      </>
-                    )}
-                  </Button>
-                )}
               </div>
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredDocuments.length} document(s)
                 </p>
-                <Button
-                  onClick={loadSampleData}
-                  disabled={isLoadingSamples}
-                  variant="outline"
-                  size="sm"
-                >
-                  {isLoadingSamples ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Add More Samples
-                    </>
-                  )}
-                </Button>
               </div>
-              
+
               <div className="bg-card rounded-2xl border-2 border-primary/10 overflow-hidden shadow-soft">
                 <Table>
                   <TableHeader>
