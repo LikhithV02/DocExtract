@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Build outputs (will be generated)
+dist/
+dist-ssr/
+build/
+
+# Development files
+.git/
+.gitignore
+README.md
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.cache/
+tmp/
+temp/
