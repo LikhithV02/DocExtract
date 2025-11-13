@@ -85,8 +85,7 @@ secrets.dart
 # Web related
 /web/flutter.js
 
-# Archived Flutter files
-archive/
+# Ignore Flutter directories that were deleted (not archived)
 android/
 docextract/
 
