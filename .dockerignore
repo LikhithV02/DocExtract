@@ -1,82 +1,52 @@
-# Git files
-.git
+# Root .dockerignore for monorepo builds
+
+# Git
+.git/
 .gitignore
-.gitattributes
 
 # Documentation
 *.md
 docs/
 
-# Python cache
-__pycache__
-*.py[cod]
-*$py.class
-*.so
-.Python
-**/__pycache__
-
-# Virtual environments
-venv/
-env/
-ENV/
-.venv
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-*.cover
-.hypothesis/
-tests/
-*_test.py
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-*~
 
-# OS files
+# Python cache (backend)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+
+# Node (will be installed fresh)
+**/node_modules/
+**/bun.lockb
+
+# Build outputs
+**/dist/
+**/build/
+**/.next/
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs
+**/*.log
+**/logs/
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-logs/
+# Archive
+archive/
 
-# Database
-*.db
-*.sqlite
-
-# Uploads
-uploads/
-
-# Frontend build artifacts (but keep source files for Flutter web build)
-android/
-ios/
-windows/
-macos/
-linux/
-
-# Flutter cache and generated files (contain host absolute paths)
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.metadata
-
-# Other backend files
-backend/tests/
-backend/.pytest_cache/
-backend/htmlcov/
+# Testing
+**/coverage/
+**/.nyc_output/
+**/test-results/

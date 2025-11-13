@@ -1,18 +1,19 @@
 # Multi-stage build for React Vite frontend
+# This Dockerfile is designed to run from the repository root (monorepo)
 
 # Build stage
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from frontend directory
+COPY frontend/package*.json ./
 
 # Install dependencies
 RUN npm ci --legacy-peer-deps
 
-# Copy source files
-COPY . .
+# Copy frontend source files
+COPY frontend/ ./
 
 # Build the application
 RUN npm run build
