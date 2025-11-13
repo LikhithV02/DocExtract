@@ -85,6 +85,9 @@ secrets.dart
 # Web related
 /web/flutter.js
 
+# Archived Flutter files
+archive/
+
 # Exceptions to above rules.
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock

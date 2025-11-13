@@ -18,20 +18,59 @@ interface ReviewEditProps {
 export const ReviewEdit = ({ data, fileName, documentType, onSave, onCancel }: ReviewEditProps) => {
   const [editedData, setEditedData] = useState(data);
   const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateField = (fieldName: string, value: any, type?: 'number' | 'date' | 'required') => {
+    if (type === 'required' && (!value || value === '')) {
+      setErrors(prev => ({ ...prev, [fieldName]: 'This field is required' }));
+      return false;
+    }
+
+    if (type === 'number' && value && isNaN(Number(value))) {
+      setErrors(prev => ({ ...prev, [fieldName]: 'Must be a valid number' }));
+      return false;
+    }
+
+    if (type === 'date' && value) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(value) && !value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        setErrors(prev => ({ ...prev, [fieldName]: 'Invalid date format' }));
+        return false;
+      }
+    }
+
+    // Clear error if validation passes
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
+    return true;
+  };
 
   const handleSave = () => {
+    // Validate before saving
+    const hasErrors = Object.keys(errors).length > 0;
+    if (hasErrors) {
+      return;
+    }
     onSave(editedData);
   };
 
-  const updateNestedValue = (path: string[], value: any) => {
+  const updateNestedValue = (path: string[], value: any, validation?: { type?: 'number' | 'date' | 'required', fieldName?: string }) => {
+    // Validate if validation config is provided
+    if (validation?.fieldName && validation?.type) {
+      validateField(validation.fieldName, value, validation.type);
+    }
+
     const newData = JSON.parse(JSON.stringify(editedData));
     let current = newData;
-    
+
     for (let i = 0; i < path.length - 1; i++) {
       if (!current[path[i]]) current[path[i]] = {};
       current = current[path[i]];
     }
-    
+
     current[path[path.length - 1]] = value;
     setEditedData(newData);
   };
@@ -169,10 +208,13 @@ export const ReviewEdit = ({ data, fileName, documentType, onSave, onCancel }: R
               id="invoice-gold-price"
               type="number"
               value={editedData.invoice_details?.gold_price_per_unit || ""}
-              onChange={(e) => updateNestedValue(["invoice_details", "gold_price_per_unit"], parseFloat(e.target.value))}
+              onChange={(e) => updateNestedValue(["invoice_details", "gold_price_per_unit"], parseFloat(e.target.value), { type: 'number', fieldName: 'gold_price_per_unit' })}
               disabled={!isEditing}
-              className="bg-background/50"
+              className={`bg-background/50 ${errors.gold_price_per_unit ? 'border-destructive' : ''}`}
             />
+            {errors.gold_price_per_unit && isEditing && (
+              <p className="text-xs text-destructive mt-1">{errors.gold_price_per_unit}</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -225,10 +267,13 @@ export const ReviewEdit = ({ data, fileName, documentType, onSave, onCancel }: R
               id="grand-total"
               type="number"
               value={editedData.summary?.grand_total || ""}
-              onChange={(e) => updateNestedValue(["summary", "grand_total"], parseFloat(e.target.value))}
+              onChange={(e) => updateNestedValue(["summary", "grand_total"], parseFloat(e.target.value), { type: 'number', fieldName: 'grand_total' })}
               disabled={!isEditing}
-              className="bg-background/50 font-bold text-lg"
+              className={`bg-background/50 font-bold text-lg ${errors.grand_total ? 'border-destructive' : ''}`}
             />
+            {errors.grand_total && isEditing && (
+              <p className="text-xs text-destructive mt-1">{errors.grand_total}</p>
+            )}
           </div>
         </CardContent>
       </Card>

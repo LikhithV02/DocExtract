@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export interface ExtractRequest {
   file_data: string;
@@ -100,6 +100,24 @@ export const api = {
     if (!response.ok) {
       throw new Error("Failed to delete document");
     }
+  },
+
+  async updateDocument(id: string, data: {
+    extracted_data: any;
+  }): Promise<Document> {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update document");
+    }
+
+    return response.json();
   },
 };
 

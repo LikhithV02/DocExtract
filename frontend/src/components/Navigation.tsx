@@ -1,4 +1,4 @@
-import { FileText, History, Upload } from "lucide-react";
+import { FileText, History, Upload, BarChart3 } from "lucide-react";
 import { NavLink } from "./NavLink";
 
 export const Navigation = () => {
@@ -31,6 +31,14 @@ export const Navigation = () => {
             >
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">History</span>
+            </NavLink>
+            <NavLink
+              to="/statistics"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-gradient-secondary hover:text-white"
+              activeClassName="bg-gradient-primary text-white shadow-soft"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Statistics</span>
             </NavLink>
           </div>
         </div>

@@ -1,22 +1,23 @@
 # DocExtract v2.0
 
-A Flutter mobile and web application for extracting information from documents using LlamaParse AI. This app specializes in processing government IDs and invoices with a centralized FastAPI backend.
+A modern React + TypeScript web application for extracting information from documents using LlamaParse AI. This app specializes in processing government IDs and invoices with a FastAPI backend and MongoDB database.
 
-> 🎉 **New in v2.0**: FastAPI + MongoDB backend, real-time WebSocket sync, centralized document extraction, and self-hosted deployment!
+> 🎉 **New in v2.0**: Migrated to React + TypeScript (Lovable stack), real-time WebSocket sync, Statistics dashboard, field-level copy buttons, and enhanced validation!
 
 ## ✨ Features
 
-- 📸 **Capture photos** directly from your device camera (Android only)
-- 📁 **Upload images** (JPG, PNG) or PDF documents
+- 📁 **Upload documents** - Support for images (JPG, PNG) and PDF files
 - 🆔 **Government ID extraction** - Extract information from passports, driver's licenses, national IDs, etc.
 - 🧾 **Invoice extraction** - Extract details from Indian GST invoices with complete line items
-- ✏️ **Edit before saving** - Review and edit all extracted data before saving to database
-- 🔄 **Real-time sync** - WebSocket-based instant sync across all devices
+- ✏️ **Edit with validation** - Review and edit extracted data with inline validation
+- 📋 **Copy to clipboard** - One-click copy for any field
+- 🔄 **Real-time sync** - WebSocket-based instant updates with connection status
 - 💾 **MongoDB storage** - Fast, scalable document database
 - 🚀 **Self-hosted** - Full control over your data and infrastructure
-- 📱 **Cross-platform** - Runs on Android and as a web application
-- 📜 **History view** - Browse and manage all previously extracted documents
-- 📊 **Statistics** - Track document counts by type
+- 📊 **Statistics dashboard** - Visual insights into document processing and revenue
+- 📜 **History view** - Browse, search, and manage all extracted documents
+- 🎨 **Modern UI** - Built with React, TailwindCSS, and shadcn/ui components
+- 🌐 **Responsive design** - Works seamlessly on desktop and mobile browsers
 
 ## 🏗️ Architecture
 
@@ -30,23 +31,25 @@ A Flutter mobile and web application for extracting information from documents u
 - **Docker** - Containerized deployment
 
 **Frontend:**
-- **Flutter/Dart** - Cross-platform UI framework
-- **Provider** - State management
-- **Dio** - HTTP client
+- **React 18** - Modern UI library
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Lightning-fast build tool
+- **TailwindCSS** - Utility-first CSS framework
+- **shadcn/ui** - High-quality React components
+- **React Query** - Server state management
 - **WebSocket** - Real-time updates
 
 ## 📋 Prerequisites
 
 ### Backend
-- Docker & Docker Compose
+- Docker & Docker Compose (recommended)
 - Python 3.11+ (for local development)
-- MongoDB 7.0+ (or use Docker)
+- MongoDB 7.0+ (MongoDB Atlas recommended)
 - LlamaCloud API key
 
 ### Frontend
-- Flutter SDK 3.0.0+
-- Dart SDK (comes with Flutter)
-- Android Studio (for Android development)
+- Node.js 18+ and npm
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ## 🚀 Quick Start
 
@@ -90,18 +93,39 @@ curl http://localhost:8000/health
 # Should return: {"status":"healthy","database":"connected"}
 ```
 
-### 3. Flutter App Setup
+### 3. Frontend Setup
 
 ```bash
+# Navigate to frontend directory
+cd frontend
+
 # Install dependencies
-flutter pub get
+npm install
 
-# Run on Android
-flutter run
+# Copy environment template
+cp .env.example .env
 
-# Or run on Web
-flutter run -d chrome
+# Edit .env with backend URL (default: http://localhost:8000)
+nano .env
+
+# Start development server
+npm run dev
 ```
+
+The frontend will be available at `http://localhost:5173`
+
+### 4. Using the Dev Script (Easiest)
+
+```bash
+# Start both backend and frontend together
+./scripts/dev.sh
+```
+
+This script will:
+- Set up environment files if needed
+- Start the backend on port 8000
+- Start the frontend on port 5173
+- Display all access URLs
 
 ## 📖 Detailed Setup
 
@@ -129,21 +153,19 @@ docker run -d -p 27017:27017 \
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Flutter App Configuration
+### Frontend Configuration
 
-Configure the API endpoint:
+Configure the API endpoint in `frontend/.env`:
 
-**Option A: Environment Variable (Recommended)**
 ```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:8000 \
-            --dart-define=WS_URL=ws://localhost:8000/ws/documents
-```
+# Development
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_WS_URL=ws://localhost:8000/ws
+VITE_API_PORT=8000
 
-**Option B: Edit Configuration File**
-```dart
-// lib/config/api_config.dart
-static const String baseUrl = 'http://localhost:8000';
-static const String wsUrl = 'ws://localhost:8000/ws/documents';
+# Production (Railway)
+# VITE_API_BASE_URL=https://your-backend.railway.app/api/v1
+# VITE_WS_URL=wss://your-backend.railway.app/ws
 ```
 
 ## 🧑‍💻 Local Development & Testing
@@ -195,71 +217,116 @@ docker-compose up
 - Health check: http://localhost:8000/health
 - API docs: http://localhost:8000/docs
 
-### Flutter Web - Local Testing
+### Frontend - Local Testing
 
-**Run Flutter web with hot reload:**
+**Run React frontend with hot reload:**
 ```bash
-# Basic run (uses default port)
-flutter run -d chrome
+cd frontend
 
-# Run on specific port
-flutter run -d chrome --web-port 3000
+# Development mode (with HMR)
+npm run dev
 
-# Run with custom API endpoint (for local backend)
-flutter run -d chrome \
-  --dart-define=API_BASE_URL=http://localhost:8000 \
-  --dart-define=WS_URL=ws://localhost:8000/ws/documents
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-**Build Flutter web for testing:**
-```bash
-# Production build
-flutter build web --release
+**Frontend will be available at:**
+- Development: http://localhost:5173
+- Preview: http://localhost:4173
 
-# Development build with API config
-flutter build web \
-  --dart-define=API_BASE_URL=http://localhost:8000 \
-  --dart-define=WS_URL=ws://localhost:8000/ws/documents
+## 📦 Deployment
+
+### Docker Compose (Full Stack)
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Access the application
+- Frontend: http://localhost:8080
+- Backend: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 ```
 
-**Serve built web app locally:**
-```bash
-# Install dhttpd if not already installed
-dart pub global activate dhttpd
+### Railway Deployment
 
-# Serve the built web app
-dhttpd --path build/web --port 8080
+Use the helper script for easy deployment:
+
+```bash
+./scripts/deploy-railway.sh
 ```
 
-**Flutter web will be available at:**
-- Development server: http://localhost:PORT (auto-assigned or specified)
-- Built app: http://localhost:8080 (if using dhttpd)
+Or deploy manually:
+1. Install Railway CLI: `npm install -g @railway/cli`
+2. Login: `railway login`
+3. Link project: `railway link`
+4. Set environment variables in Railway dashboard
+5. Deploy: `railway up`
 
-### Testing Both Together
+See [LOVABLE_MIGRATION.md](LOVABLE_MIGRATION.md) for detailed migration guide.
 
-1. **Start backend:**
+## 🔄 Migration from Flutter
+
+This project was migrated from Flutter to React + TypeScript in November 2025. The Flutter code has been archived in `archive/flutter-app/` for reference.
+
+**Key changes:**
+- Migrated to React 18 + TypeScript + Vite
+- Enhanced UI with TailwindCSS and shadcn/ui
+- Added Statistics dashboard
+- Implemented field-level copy buttons
+- Added inline validation
+- Improved WebSocket integration
+- No raw JSON visible in UI
+
+For complete migration details, see [LOVABLE_MIGRATION.md](LOVABLE_MIGRATION.md)
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Backend tests
+cd backend
+pytest
+
+# Frontend tests (if configured)
+cd frontend
+npm test
+```
+
+### Integration Testing
+
+1. **Start both services:**
    ```bash
-   cd backend
-   docker-compose up
+   ./scripts/dev.sh
    ```
 
-2. **In a new terminal, start Flutter web:**
+2. **Test the flow:**
+   - Upload a document at http://localhost:5173
+   - Verify extraction results display correctly
+   - Edit and save the document
+   - Check WebSocket live indicator
+   - View document in History page
+   - Check Statistics dashboard
+
+3. **Monitor logs:**
    ```bash
-   flutter run -d chrome \
-     --dart-define=API_BASE_URL=http://localhost:8000 \
-     --dart-define=WS_URL=ws://localhost:8000/ws/documents
+   # Backend logs
+   docker-compose logs -f backend
+
+   # Or if running locally
+   # Check terminal where uvicorn is running
    ```
 
-3. **Test the integration:**
-   - Upload a document
-   - Check WebSocket real-time sync
-   - View backend logs: `docker-compose logs -f`
+## 📚 Documentation
 
-## 🌐 Production Deployment
-
-### VPS Deployment
-
-See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for complete deployment instructions.
+- [API Documentation](API_DOCUMENTATION.md) - Complete API reference
+- [Migration Guide](LOVABLE_MIGRATION.md) - Flutter to React migration
+- [Railway Deployment](RAILWAY_DEPLOYMENT_PLAN.md) - Production deployment
+- [MongoDB Setup](MONGODB_ATLAS_SETUP.md) - Database configuration
 
 Quick deploy script:
 ```bash

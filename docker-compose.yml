@@ -55,25 +55,24 @@ services:
     networks:
       - docextract_network
 
-  # Flutter Web Frontend
+  # React Vite Frontend
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
-      args:
-        API_BASE_URL: http://localhost:8000
-        WS_URL: ws://localhost:8000/ws/documents
     container_name: docextract_frontend
     restart: always
     environment:
-      PORT: 80
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      VITE_WS_URL: ws://localhost:8000/ws
+      VITE_API_PORT: 8000
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,0 +1,55 @@
+# Railway ignore file for frontend deployment
+
+# Dependencies
+node_modules/
+
+# Git files
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+
+# Environment files (will be set in Railway)
+.env
+.env.*
+!.env.example
+
+# Build artifacts (will be built on Railway)
+dist/
+build/
+.next/
+out/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Misc
+.turbo/
+.vercel/

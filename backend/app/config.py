@@ -20,9 +20,8 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # CORS Configuration
-    allowed_origins: List[str] = [
-        "*",  # Allow all origins for development (restrict in production)
-    ]
+    # Can be overridden with ALLOWED_ORIGINS env var (comma-separated)
+    allowed_origins: List[str] = ["*"]  # Allow all origins for development
 
     # API Configuration
     api_v1_prefix: str = "/api/v1"

@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { api, Document } from "@/lib/api";
 import { sampleInvoices } from "@/lib/sampleData";
-import { Search, FileText, Loader2, Sparkles, Eye, Trash2 } from "lucide-react";
+import { Search, FileText, Loader2, Sparkles, Eye, Trash2, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 
 const History = () => {
@@ -23,6 +24,22 @@ const History = () => {
   const [filterType, setFilterType] = useState<string>("invoice");
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const { toast } = useToast();
+
+  // WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket({
+    autoConnect: true,
+    onMessage: (message) => {
+      if (message.type === 'extraction_complete' || message.type === 'document_updated') {
+        // Refresh documents list
+        fetchDocuments();
+        toast({
+          title: "Document Updated",
+          description: "A document was added or updated",
+        });
+      }
+    },
+    eventTypes: ['extraction_complete', 'document_updated'],
+  });
 
   const fetchDocuments = async () => {
     try {
@@ -108,9 +125,27 @@ const History = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Document History
-            </h1>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Document History
+              </h1>
+              <Badge
+                variant="outline"
+                className={isConnected ? "border-success text-success" : "border-muted text-muted-foreground"}
+              >
+                {isConnected ? (
+                  <>
+                    <Wifi className="w-3 h-3 mr-1" />
+                    Live
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3 mr-1" />
+                    Offline
+                  </>
+                )}
+              </Badge>
+            </div>
             <p className="text-lg text-muted-foreground">
               View and manage your extracted documents
             </p>

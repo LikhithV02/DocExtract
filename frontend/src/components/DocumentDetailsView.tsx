@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { CopyableField } from "@/components/CopyableField";
 import { Separator } from "@/components/ui/separator";
 
 interface DocumentDetailsViewProps {
@@ -21,18 +20,19 @@ export const DocumentDetailsView = ({ data, documentType }: DocumentDetailsViewP
             </CardTitle>
           </CardHeader>
           <CardContent className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground">Business Name</Label>
-              <p className="font-medium mt-1">{data.seller_info?.name || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">GSTIN</Label>
-              <p className="font-medium mt-1">{data.seller_info?.gstin || "N/A"}</p>
-            </div>
-            <div className="md:col-span-2">
-              <Label className="text-muted-foreground">Contact Numbers</Label>
-              <p className="font-medium mt-1">{data.seller_info?.contact_numbers?.join(", ") || "N/A"}</p>
-            </div>
+            <CopyableField
+              label="Business Name"
+              value={data.seller_info?.name || "N/A"}
+            />
+            <CopyableField
+              label="GSTIN"
+              value={data.seller_info?.gstin || "N/A"}
+            />
+            <CopyableField
+              label="Contact Numbers"
+              value={data.seller_info?.contact_numbers?.join(", ") || "N/A"}
+              className="md:col-span-2"
+            />
           </CardContent>
         </Card>
 
@@ -45,22 +45,23 @@ export const DocumentDetailsView = ({ data, documentType }: DocumentDetailsViewP
             </CardTitle>
           </CardHeader>
           <CardContent className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground">Customer Name</Label>
-              <p className="font-medium mt-1">{data.customer_info?.name || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Contact</Label>
-              <p className="font-medium mt-1">{data.customer_info?.contact || "N/A"}</p>
-            </div>
-            <div className="md:col-span-2">
-              <Label className="text-muted-foreground">Address</Label>
-              <p className="font-medium mt-1">{data.customer_info?.address || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Customer GSTIN</Label>
-              <p className="font-medium mt-1">{data.customer_info?.gstin || "N/A"}</p>
-            </div>
+            <CopyableField
+              label="Customer Name"
+              value={data.customer_info?.name || "N/A"}
+            />
+            <CopyableField
+              label="Contact"
+              value={data.customer_info?.contact || "N/A"}
+            />
+            <CopyableField
+              label="Address"
+              value={data.customer_info?.address || "N/A"}
+              className="md:col-span-2"
+            />
+            <CopyableField
+              label="Customer GSTIN"
+              value={data.customer_info?.gstin || "N/A"}
+            />
           </CardContent>
         </Card>
 
@@ -73,18 +74,18 @@ export const DocumentDetailsView = ({ data, documentType }: DocumentDetailsViewP
             </CardTitle>
           </CardHeader>
           <CardContent className="grid md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-muted-foreground">Date</Label>
-              <p className="font-medium mt-1">{data.invoice_details?.date || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Bill Number</Label>
-              <p className="font-medium mt-1">{data.invoice_details?.bill_no || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Gold Price/Unit</Label>
-              <p className="font-medium mt-1">{data.invoice_details?.gold_price_per_unit || "N/A"}</p>
-            </div>
+            <CopyableField
+              label="Date"
+              value={data.invoice_details?.date || "N/A"}
+            />
+            <CopyableField
+              label="Bill Number"
+              value={data.invoice_details?.bill_no || "N/A"}
+            />
+            <CopyableField
+              label="Gold Price/Unit"
+              value={data.invoice_details?.gold_price_per_unit || "N/A"}
+            />
           </CardContent>
         </Card>
 
@@ -97,22 +98,22 @@ export const DocumentDetailsView = ({ data, documentType }: DocumentDetailsViewP
             </CardTitle>
           </CardHeader>
           <CardContent className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground">Subtotal</Label>
-              <p className="font-medium mt-1">₹{data.summary?.sub_total || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Discount</Label>
-              <p className="font-medium mt-1">₹{data.summary?.discount || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Taxable Amount</Label>
-              <p className="font-medium mt-1">₹{data.summary?.taxable_amount || "N/A"}</p>
-            </div>
-            <div>
-              <Label className="text-muted-foreground">Grand Total</Label>
-              <p className="font-bold text-lg mt-1">₹{data.summary?.grand_total || "N/A"}</p>
-            </div>
+            <CopyableField
+              label="Subtotal"
+              value={`₹${data.summary?.sub_total || "N/A"}`}
+            />
+            <CopyableField
+              label="Discount"
+              value={`₹${data.summary?.discount || "N/A"}`}
+            />
+            <CopyableField
+              label="Taxable Amount"
+              value={`₹${data.summary?.taxable_amount || "N/A"}`}
+            />
+            <CopyableField
+              label="Grand Total"
+              value={`₹${data.summary?.grand_total || "N/A"}`}
+            />
           </CardContent>
         </Card>
       </div>
@@ -129,34 +130,35 @@ export const DocumentDetailsView = ({ data, documentType }: DocumentDetailsViewP
         </CardTitle>
       </CardHeader>
       <CardContent className="grid md:grid-cols-2 gap-4">
-        <div>
-          <Label className="text-muted-foreground">Full Name</Label>
-          <p className="font-medium mt-1">{data.full_name || "N/A"}</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground">ID Number</Label>
-          <p className="font-medium mt-1">{data.id_number || "N/A"}</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground">Date of Birth</Label>
-          <p className="font-medium mt-1">{data.date_of_birth || "N/A"}</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground">Gender</Label>
-          <p className="font-medium mt-1">{data.gender || "N/A"}</p>
-        </div>
-        <div className="md:col-span-2">
-          <Label className="text-muted-foreground">Address</Label>
-          <p className="font-medium mt-1">{data.address || "N/A"}</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground">Nationality</Label>
-          <p className="font-medium mt-1">{data.nationality || "N/A"}</p>
-        </div>
-        <div>
-          <Label className="text-muted-foreground">Document Type</Label>
-          <p className="font-medium mt-1">{data.document_type || "N/A"}</p>
-        </div>
+        <CopyableField
+          label="Full Name"
+          value={data.full_name || "N/A"}
+        />
+        <CopyableField
+          label="ID Number"
+          value={data.id_number || "N/A"}
+        />
+        <CopyableField
+          label="Date of Birth"
+          value={data.date_of_birth || "N/A"}
+        />
+        <CopyableField
+          label="Gender"
+          value={data.gender || "N/A"}
+        />
+        <CopyableField
+          label="Address"
+          value={data.address || "N/A"}
+          className="md:col-span-2"
+        />
+        <CopyableField
+          label="Nationality"
+          value={data.nationality || "N/A"}
+        />
+        <CopyableField
+          label="Document Type"
+          value={data.document_type || "N/A"}
+        />
       </CardContent>
     </Card>
   );
