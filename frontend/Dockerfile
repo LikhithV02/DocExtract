@@ -4,6 +4,14 @@
 # Build stage
 FROM node:18-alpine AS builder
 
+# Accept build arguments for environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_WS_URL
+
+# Set them as environment variables for the build
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+
 WORKDIR /app
 
 # Copy package files from frontend directory
@@ -15,7 +23,7 @@ RUN npm ci --legacy-peer-deps
 # Copy frontend source files
 COPY frontend/ ./
 
-# Build the application
+# Build the application with environment variables
 RUN npm run build
 
 # Production stage
