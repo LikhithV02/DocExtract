@@ -292,12 +292,6 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
                                       style:
                                           Theme.of(context).textTheme.titleLarge,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      widget.document.fileName,
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
                                   ],
                                 ),
                               ),
@@ -546,6 +540,16 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
   }
 
   Widget _buildDataTable() {
+    // Filter out complex nested structures (Maps and Lists) to avoid showing raw JSON
+    final simpleFields = _editedData.entries
+        .where((entry) => entry.value != null && entry.value is! Map && entry.value is! List)
+        .toList();
+
+    // If we have a government_id document, try to extract specific fields
+    if (widget.document.documentType == 'government_id' && _editedData.containsKey('personal_info')) {
+      return _buildGovernmentIdTable();
+    }
+
     return Card(
       elevation: 2,
       child: SingleChildScrollView(
@@ -585,7 +589,7 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
                   ),
                 ),
             ],
-            rows: _editedData.entries.map((entry) {
+            rows: simpleFields.map((entry) {
               return DataRow(
                 cells: [
                   DataCell(
@@ -641,6 +645,79 @@ class _ExtractionResultScreenState extends State<ExtractionResultScreen> {
             }).toList(),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGovernmentIdTable() {
+    // Extract personal info fields for government ID
+    final personalInfo = _editedData['personal_info'] as Map? ?? {};
+    final addressInfo = _editedData['address_info'] as Map? ?? {};
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Personal Information',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _buildSimpleField('Full Name', personalInfo['name']),
+            _buildSimpleField('Date of Birth', personalInfo['dob']),
+            _buildSimpleField('ID Number', personalInfo['id_number']),
+            _buildSimpleField('Gender', personalInfo['gender']),
+            if (addressInfo.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              Text(
+                'Address Information',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              _buildSimpleField('Address', addressInfo['address']),
+              _buildSimpleField('City', addressInfo['city']),
+              _buildSimpleField('State', addressInfo['state']),
+              _buildSimpleField('Pin Code', addressInfo['pin_code']),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleField(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value?.toString() ?? 'N/A',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
